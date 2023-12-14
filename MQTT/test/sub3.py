@@ -9,7 +9,7 @@ broker = 'broker.emqx.io'
 port = 1883
 TopicPuzzle = "puzzle"
 # Generate a Client ID with the subscribe prefix.
-client_id = f'Drone 1'
+client_id = f'Drone 3'
 username = 'emqx'
 password = 'cuong'
 
@@ -32,8 +32,8 @@ def subscribe(client: mqtt_client):
     def on_message(client, userdata, msg):
         msg_recv = msg.payload.decode()
         msg_recv_dict = json.loads(msg_recv)
-        msg_drone1 = msg_recv_dict["drone1"]
-        print(f"Received `{msg_drone1}` from `{msg.topic}` topic")
+        msg_drone3 = msg_recv_dict["drone3"]
+        print(f"Received `{msg_drone3}` from `{msg.topic}` topic")
 
     client.subscribe(TopicPuzzle)
     client.on_message = on_message
