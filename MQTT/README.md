@@ -4,17 +4,17 @@ MQTT use broker Mosquitto
 
 1. Description
 --------------
-This project use mqtt protocol to connect between publisher and subcriber via 
+This project use mqtt protocol to connect between publisher and subscriber via 
 a broker, which name is Mosquitto and it a broker run under the local on a 
 Raspberry Pi- It is a master machines. 
 
-2. Setup enviroment 
+2. Setup environment 
 ----------------------
-Install Python client library for MQTT on Windown: paho-mqtt
+Install Python client library for MQTT on Windows: paho-mqtt
 - pip install paho-mqtt
 Install broker for local machine: Mosquitto 
 - Search on browser: https://mosquitto.org/download/ , install and setup this software 
-- Configure mosquitto in order to accept connnections from remote clients. 
+- Configure mosquitto in order to accept connections from remote clients. 
 2.1. On your Windows machine, run a text editor as administrator and paste the following text:
 
 listener 1883
