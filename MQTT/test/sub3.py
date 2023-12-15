@@ -5,7 +5,7 @@ import json
 from paho.mqtt import client as mqtt_client
 
 
-broker = 'broker.emqx.io'
+broker = '192.168.1.145'     # your ip address  - you can find it by : Go to  "Command Prompt" and input "ipconfig" to get your ip address 
 port = 1883
 TopicPuzzle = "puzzle"
 # Generate a Client ID with the subscribe prefix.

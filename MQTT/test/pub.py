@@ -16,7 +16,7 @@ msgPayload3 = {'force':2000,'position':3}
     
 messagePayload = [msgPayload1,msgPayload2,msgPayload3]
 
-broker = 'broker.emqx.io'
+broker = '192.168.1.145'     # your ip address  - you can find it by : Go to  "Command Prompt" and input "ipconfig" to get your ip address 
 port = 1883
 # Topic_Direction = "direction"
 # Topic_Arm = "arm"
