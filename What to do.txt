@@ -1,0 +1,31 @@
+Main problem:
+     Drone Frame
+          re-design or keep part of it
+          what need to be fix on the Frame
+          can you scale the drone
+     what do master laptop Pub
+          check up signal init
+          check up signal in
+          where do we process that
+          type of command
+          type of format
+          how to assign formation
+               base on what and why
+               how to command a drone to flight to a point or multiple point
+               how to do it simultaneously through out all the drone (maybe sending coordinate first and then start all)
+               what type of formation
+          matrix math, assign problem
+          
+     what do drone listening to
+          command? make a list, how many type of command
+               do we need to split the type of command into two type: sys command and drone command
+          other drone coordinate for avoidance?
+          do it need to commute with the master drone or master laptop
+     drone or master laptop
+     what do drone Pub
+          what kind of info?
+          how many time per sec?
+          data pack format? how big is it?
+     Pre-flight routine
+          check up routine
+          fail safe if needed?
