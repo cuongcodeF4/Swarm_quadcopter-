@@ -4,6 +4,10 @@ Main problem:
           what need to be fix on the Frame
           can you scale the drone
      what do master laptop Pub
+          sycronous pub and sub
+               khi một thông tin được gửi dưới dạng nhiều thành viên đọc, hay nói đơn giản là các dạng thông tin sẽ gửi cho nhiều drone hoặc nhiều drone gửi cho một người thì cần phải có safe check và đồng bộ.
+               ví dụ như nhiều drone gửi thông tin về cho lap thì lap phải biết được số lượng msg mà nó sẽ nhận, từ đó làm một check list để kiểm tra và đếm xem số lượng drone gửi đã đủ và thoả hay chưa. nếu chưa thì không pub confirm msg lên mà vẫn ở chế độ nhận. Các drone khi này sẽ liên tục gửi msg cho đến khi máy master nhận đủ theo check list trước đo và confirm lên broker là all_Rmsg_confirm, thi sau đó drone ngừng gửi.
+               Áp dụng ngược cho master khi master gửi lệnh ra. Mỗi drone nhận xong phải commit or pub msg lên báo cho master là mình đã nhận, sau đó thì có thể đợi và không gửi nữa. Master pahỉ track hết các drone trong set up và khi đủ all thì pub all_Smsg_confirm để thống nhất với tất cả các drone và đồng bộ hoá việc điều khiển (nhiều người nghe và chỉ 1 người nói thì đồng bộ khá dễ)
           check up signal init
           check up signal in
           where do we process that
