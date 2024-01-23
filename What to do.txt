@@ -23,6 +23,11 @@ Main problem:
      what do drone listening to
           command? make a list, how many type of command
                do we need to split the type of command into two type: sys command and drone command
+               >> Các loại lệnh chính, một loại là lệnh hệ thống, hay system command (sysCom), drone command (droneCom), Control Command (conCom)
+               >> hai phần định dạng này sẽ xem như sufix đặt ở trước lệnh gửi đi trong mạng, dùng để phân biệt rõ và đẩy nhanh quá trình xử lý của drone
+               >>> sysCom: Bao gồm các gói lệnh và câu lệnh cho việc checking up, set up chế độ, chuyển chế độ và các loại fail safe cần thiết. Một lệnh có thể được coi                là sysCom khi nó chịu trách nhiệm truyền các thông tin liên quan đến tình trạng drone, hay các lệnh set up cho drone hay kiểm tra drone khi cần. các dạng                lệnh có thể có như stop, hold, report, init, comCheck. Cũng có thể dùng sysCom để set up một số para cho drone trong giai đoạn ban đầu, như tuỳ chỉnh                    thông số PID chẳng hạn.
+               >>> droneCom: bao gồm các lệnh giúp người dùng tuỳ chỉnh drone, chọn 1 drone để điều khiển bất kỳ, chọn chế độ bay cho drone và chọn chế độ điều khiển                   bầy cho drone. droneCom cũng có thể dùng để asign drone và kêu drone trả tín hiệu và vị trí về máy chủ tức thời.
+               >>> conCom: Tập trung nhiều vào việc đưa ra các tín hiệu điều khiển cũng như tuỳ chỉnh bay. Thiết lập chương trình bay,....
           other drone coordinate for avoidance?
           do it need to commute with the master drone or master laptop
      drone or master laptop
