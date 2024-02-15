@@ -23,6 +23,12 @@ import paho.mqtt.client as mqtt_client                          #need to be inst
 
 
 
+
+def get_msg(sub_msgReceived):
+    return None
+
+
+
 def on_connect(client, userdata, flags, rc):                    #Connection call back, use to check wether the connection is good or not
     #check ing call back value
     if rc == 0:
@@ -31,12 +37,15 @@ def on_connect(client, userdata, flags, rc):                    #Connection call
     else:
         #opposite value to connect successfully
         print("Failed to connect, return code %d\n", rc)
+def on_message(client, userdata, msg, received_messages, topic):                                  #Message receive call back
+        try:
+            received_messages[topic] = msg.payload.decode()
+        except Exception as e:
+            print(f"Error processing message from {topic}: {e}")
 
 
-
-#before init this func please create an object with para lib by set ID = MQTT_ID()
-#please also set all the para to the right value so that you can use it right
-#the input ID will be in class form with preset value that we set in the setup phase
+#only pub into droneFB topic to submit info to other channel
+#with the ID pre-set with needed info base on what the master tell the drone to publish
 def publish(ID, msg):                                          
     #create client info with the input ID
     client = mqtt_client.Client()
@@ -50,55 +59,79 @@ def publish(ID, msg):
     # Wait for connection to complete
     client.loop_start()
     # Publish the empty dictionary (converted to JSON)
-    result = client.publish(ID.topic, json.dumps(msg))
+    result = client.publish('droneFB', json.dumps(msg))
     #safe result for call back function
     #result format is 0,1 and 2 with 0 indicate for successful publish
     #call back when success publish msg
     if result[0]==0:
-        print(f"Send `{msg}` to topic:`{ID[3]}`")
+        print(f"Send `{msg}` to topic: 'droneFB'")
         #Stop loop after connect and publish successfully
         client.loop_stop()
         #Disconnect MQTT server
         client.disconnect()
     else:
-         print(f"Publish failed to topic: `{ID.topic}`, trying to re-publish")
+         print(f"Publish failed to topic: 'droneFB', trying to re-publish")
 
+def subscribe(ID, timeout=10):
+    """Subscribes to multiple topics and returns received messages within a timeout.
 
+    Args:
+        ID (object): An object containing relevant information like `client_id`, `username`, and `password`.
+        timeout (int, optional): Maximum time to wait for messages in seconds. Defaults to 10.
 
+    Returns:
+        dict: A dictionary containing received messages with topics as keys, or None if timed out.
+        e.g., {'sysCom': 'message content', 'droneCom': 'another message'}
+    """
 
-def on_message(client, userdata, msg):                                  #Message receive call back
-        msg_recv = msg.payload.decode()
-        msg_recv_dict = json.loads(msg_recv)
-        msgReceive = msg_recv_dict["drone1"]
-        return msgReceive
+    subMaxRetry = 5
+    availableTopic = ['sysCom', 'droneCom', 'conCom', 'droneFB']
 
+    received_messages = {}
 
-def subscribe(ID, msg):
-    #create client info with the input ID
-    client = mqtt_client.Client(ID.client_id)
-    client.username_pw_set(ID.username, ID.password)
+    for topic in availableTopic:
+        # Create a new client for each topic for isolation
+        client = mqtt_client.Client(f"{ID.client_id}-{topic}")
+        client.username_pw_set(ID.username, ID.password)
 
-    #check call back as a fail safe
-    client.on_connect = on_connect
+        # Assign your existing on_message function to handle message reception
+        client.on_message = on_message  # Use your provided on_message function
 
-    #Trying to sub until fail (5 times)
-    #set up client with the ID info
-    client.connect(ID.broker, ID.port)
-    # Wait for connection to complete
-    client.loop_start()
-    #Sub to the broker and try to received msg
-    result = client.subscribe(ID.topic)
-    client.on_message = on_message
-    msgReceived = client.on_message
-    if result[0] ==0:
-        print(f"Received `{msgReceived}` from `{ID.topic}` topic")
-        #Stop loop after connect and sub successfully
-        client.loop_stop()
-        #Disconnect MQTT server
-        client.disconnect()
-        return msgReceived
-    else:
-         print(f"Receive fail, trying to connect to `{ID.topic}` again")
+        # Connect and handle errors gracefully
+        try:
+            client.connect(ID.broker, ID.port)
+            client.loop_start()
+        except Exception as e:
+            print(f"Error connecting to {topic}: {e}")
+            continue  # Skip to the next topic if connection fails
+        # Subscribe and handle retries with timeout
+        result = client.subscribe(topic)
+        subRetry = 0
+        while result[0] != 0 and subRetry < subMaxRetry:
+            try:
+                result = client.subscribe(topic)
+                time.sleep(0.5)  # Wait for potential asynchronous subscription response
+            except Exception as e:
+                print(f"Error subscribing to {topic}: {e}")
+                subRetry += 1
+                time.sleep(1)  # Wait before retrying
+            if subRetry == subMaxRetry:
+                print(f"Failed to subscribe to {topic} after {subRetry} retries")
+        # Handle successful subscription and message reception
+        if result[0] == 0:
+            print(f"Subscribed to {topic}")
+            # Wait for messages within the timeout
+            start_time = time.time()
+            while True:
+                client.loop(2)  # Check for messages every 2 seconds
+                if time.time() - start_time > timeout:
+                    print(f"No messages received within {timeout} seconds")
+                    break  # Break the loop if timed out
+            # Disconnect (moved here for efficiency)
+            client.loop_stop()
+            client.disconnect()
+
+    return received_messages if received_messages else None  # Return None if no messages received
 
 
 

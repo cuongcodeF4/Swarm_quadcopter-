@@ -5,11 +5,11 @@
 ####MQTT para
 #Use for set up client, publisher, sub,...
 #User can change the info of the MQTT_ID base on the hardware and favor
-#exg: ID = MQTT_ID("192.168.1.1", 1, 1883, ["droneFB", "sysCom", "droneCom", "conCom"], None, None, None)
+#exg: ID = MQTT_ID("192.168.1.1", 1, 1883, None, None, None)
 # >> need to be excute before using the MQTT pub/sub func
 #when in use: ID.broker or ID.topic[1]
 class MQTT_ID:
-    def __init__(self, broker_IP, Num, port, topic, client_id, username, password):
+    def __init__(self, broker_IP, Num, port, client_id, username, password):
          #don't change and stay the same
         #can be seen as define
         #you can find it by : Go to  "Command Prompt" and input "ipconfig" to get your ip address
@@ -19,8 +19,6 @@ class MQTT_ID:
         self.Num = Num
         #Base on the info of the drone itself
         self.port = port
-        #need to be pre-set before pub or sub
-        self.topic = topic
 
         #Drone self info, don't need to be true are specific
         self.client_id = client_id
