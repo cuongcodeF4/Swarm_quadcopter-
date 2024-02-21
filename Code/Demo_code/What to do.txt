@@ -52,3 +52,17 @@ Main problem:
      Pre-flight routine
           check up routine
           fail safe if needed?
+
+
+
+
+VIỆC CÒN CHƯA LÀM: (nếu ai nhận việc thì báo cho team biết để team dễ follow)
+Drone frame design: chính care
+commute problem:
+đã donne phần drone pub sub của master, phần sub của drone cũng đã done
+Còn phần decode thông tin bên phía drone và phần pub bên ben drone vẫn chưa làm 
+Respond checkup and scan, cần thiết cho viẹc sync thôgn tin nhận và gửi giữa drone-drone và master-Drone
+Pub Sub function trên master và drone cần phải chạy đã luồng để đảm bảo thông tin nhận và gửi đươc đồng bộ
+Thêm phần lưu data vị trí cơ bản nếu cần cho viẹc xác đinhj vị trí giữa các drone với nhau
+Cần xác định cách thức để xác định vị trí drone được chính xác và dựa  trên thực tế để đảm bảo độ chính xác khi bay của drone
+Cần tập hợp gói lệnh MQTT cho đúng format và dễ sd (phàn này chính chưa đụng tại không biết làm sao)
