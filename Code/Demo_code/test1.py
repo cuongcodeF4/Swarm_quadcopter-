@@ -1,8 +1,11 @@
-while True:
-  user_input = input("Enter something (q to quit): ")
-  if user_input == "q":
-    break
-  # Continue loop body
-  print("You entered:", user_input)
-
-print("Exited the loop!")
+class test():
+    def __init__(self):
+        pass
+    def basic_func(self):
+        def sum(self,a,b):
+            return a + b
+    def result(self):
+        return self.sum(5,10)
+testnum = test()
+testnum.basic_func.sum(5, 10)
+print("the sum is: %d")

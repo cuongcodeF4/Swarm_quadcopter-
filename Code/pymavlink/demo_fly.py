@@ -43,7 +43,7 @@ class Drone():
         drone.mav.send(mavutil.mavlink.MAVLink_set_position_target_local_ned_message(10,drone.target_system, 
                                     drone.target_component,mavutil.mavlink.MAV_FRAME_LOCAL_NED ,self.type_mask,direction,direction,0,0,0,0,0,0,0,0,0))
         print("[INFO] Direction =",direction)
-        # msg = drone.recv_match(type= "LOCAL_POSITION_NED",blocking = False)
+        # msg = drone.recv_match(type= "LOCAL_POSITION_NED",blocking = False)ll
         # print("[INFO] Message feedback from local position:",msg)
 
 if __name__ == "__main__":

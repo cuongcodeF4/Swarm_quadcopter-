@@ -24,11 +24,18 @@ def on_connect(client, userdata, flags, rc):                    #Connection call
     else:
         #opposite value to connect successfully
         print("Failed to connect, return code %d\n", rc)
-def on_message(client, userdata, msg):                                  #Message receive call back
-        msg_recv = msg.payload.decode()
-        msg_recv_dict = json.loads(msg_recv)
-        msgReceive = msg_recv_dict["drone1"]
-        return msgReceive
+def on_message(client, userdata, msg, received_messages, topic):                          #Message receive call back
+        #OLD FORMAT
+        #msg_recv = msg.payload.decode()
+        #msg_recv_dict = json.loads(msg_recv)
+        #msgReceive = msg_recv_dict["drone1"]
+        #return msgReceive
+        
+        #TEST FORMAT
+        try:
+            received_messages[topic] = msg.payload.decode()
+        except Exception as e:
+            print(f"Error processing message from {topic}: {e}")
 
 def getPub_msg():
     #return format ["topic", msg]
@@ -86,13 +93,14 @@ def getPub_msg():
             print("ERROR COMMAND")
             return None
 
-def publish(ID):                                       #Publish function, msg is in dict format
+def publish(ID,topic, msg):                                                #Publish function, msg is in dict format
     #para usage: ID, msg
     #ID = [broker, port,...] có nên để topic vào không?
 
 
     #take in message
-    msg = getPub_msg()                                     #msg = ["topic", msg] or ["topic",["command","value"]]
+    #msg = getPub_msg()                                     #msg = ["topic", msg] or ["topic",["command","value"]]
+    limit_trial = 5
 
     #create client info with the input ID
     client = mqtt_client.Client()
@@ -101,28 +109,50 @@ def publish(ID):                                       #Publish function, msg is
     client.on_connect = on_connect
     #Trying to publish until fail (5 time)
 
-    #set up client with the ID info
-    client.connect(ID.broker_IP, ID.port)
-    # Wait for connection to complete
-    client.loop_start()
-    # Publish the empty dictionary (converted to JSON)
-    result = client.publish(msg[0], json.dumps(msg[1]))
-    #safe result for call back function
-    #result format is 0,1 and 2 with 0 indicate for successful publish
-    #call back when success publish msg
-    if result[0]==0:
-        print(f"Send `{msg[1]}` to topic:`{msg[0]}`")
-        #Stop loop after connect and publish successfully
+    #try to connect to the broker
+    try:
+        client.connect(ID.broker, ID.port)
+        client.loop_start()
+    except Exception as e:
+        print(f"Error connecting to {topic}: {e}")
+    #create a time out and time limit for easy debug
+    trial = 1
+    
+    while (trial < limit_trial):
+        # Publish the dictionary (converted to JSON)
+        result = client.publish(topic, json.dumps(msg))
+        #safe result for call back function
+        #result format is 0,1 and 2 with 0 indicate for successful publish
+        #call back when success publish msg
+        if result[0]==0:
+            print(f"Send `{msg}` to topic:`{topic}`")
+            #Stop loop after connect and publish successfully
+            client.loop_stop()
+            #Disconnect MQTT server
+            client.disconnect()
+        else:
+            trial += 1
+            print(f"Publish failed to topic: `{topic}`, trying to re-publish, trial: {trial}")
+    #fail to pub and exceed the trial limit
+    if trial > limit_trial:
+        #print fail to pub
+        print("TIME OUT FOR PUBLISH!")
+        print(f"Fail to publish to topic '{topic}' ")
+        #reset time out sequence
+        trial = 1
+        #end the connect loop
         client.loop_stop()
-        #Disconnect MQTT server
         client.disconnect()
-    else:
-         print(f"Publish failed to topic: `{msg[0]}`, trying to re-publish")
 
-def subscribe(ID):              #return back the msg received
+def subscribe(ID):                                              #return back the msg received
     #para usage: ID, msg
     #ID = [broker, port, topic, ID, username, password] có nên để topic vào không?
     #msg = {[info1],[info2],[info3]}
+
+    #sub limit trial, 5 times
+    limit_trial = 5
+
+    received_messages = {}
 
     #create client info with the input ID
     client = mqtt_client.Client(ID.client_id)
@@ -133,19 +163,52 @@ def subscribe(ID):              #return back the msg received
 
     #Trying to sub until fail (5 times)
     #set up client with the ID info
-    client.connect(ID.broker_IP, ID.port)
-    # Wait for connection to complete
-    client.loop_start()
-    #Sub to the broker and try to received msg
-    result = client.subscribe('droneFB')
-    client.on_message = on_message
-    msgReceived = client.on_message
-    if result[0] ==0:
-        print(f"Received `{msgReceived}` from 'droneFB' topic")
-        #Stop loop after connect and sub successfully
+    try:
+        client.connect(ID.broker, ID.port)
+        client.loop_start()
+    except Exception as e:
+        print(f"Error connecting to droneFB : {e}")
+    
+    trial = 0
+    while trial < limit_trial:
+        #Sub to the broker and try to received msg
+        result = client.subscribe('droneFB')
+        client.on_message = on_message
+        msgReceived = client.on_message
+        if result[0] ==0:
+            print(f"Received message from 'droneFB' topic")
+            #Stop loop after connect and sub successfully
+            client.loop_stop()
+            #Disconnect MQTT server
+            client.disconnect()
+        else:
+            trial += 1 
+            print(f"Receive fail, trying to connect to 'droneFB' again")
+    #fail to pub and exceed the trial limit
+    if trial > limit_trial:
+        #print fail to pub
+        print("TIME OUT FOR SUBSCRIBE")
+        print("Fail to publish to Feed back thread")
+        #reset time out sequence
+        trial = 0
+        #end the connect loop
         client.loop_stop()
-        #Disconnect MQTT server
         client.disconnect()
-        return msgReceived
+    #sum uo the msg and out put
+    if received_messages:
+        msg = ["droneFB", received_messages]
     else:
-        print(f"Receive fail, trying to connect to 'droneFB' again")
+        pass
+    return   msg# Return None if no messages received
+
+def comCheckUp(ID):                                               #Check up the connection between drone and master so that we know if they can send info to each other                            
+    #set up as a normal publish func
+    #but with the msg as a command that send to all the topic to test all the msg
+    msg = "comCheckUp"
+    test_topic = ['sysCom', 'droneCom', 'conCom']
+    for topic in test_topic:
+        #pub to all the topic to see what happen
+        publish(ID, topic, msg)
+        #wait a bit for the drone to process the info
+        subscribe(ID)
+    pass
