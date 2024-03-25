@@ -1,5 +1,6 @@
 #khai bao thu vien can thiet
 from pymavlink import mavutil
+import time
 
 # type of command will be use, make fucntion of those command
 #some simple command like: take off, arm
@@ -11,6 +12,7 @@ from pymavlink import mavutil
 
 #so that we need to build a class that have all the control algorithm
 #when init the class, an mavlink object gonna be create and can be use to 
+
 
 
 #main class
@@ -93,21 +95,55 @@ class MAV():
         )
 
     #get value
-    #what kind of data that the user wanna get
-    #will there be a type to chosse
-    def getValue(self, msg, type):
-        while True:
-            #get the msg as an object 
-            msg = self.drone.recv_msg()
-
-            #let the user chose the type of data they wanna get
-            
-
-            #scan for the msg that needed to be read out
-            #dict for condition 
-            if type == 'ALT':
-                msg = self.drone.recv_match(type=mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, blocking=True)
-                alt  = msg.alt / 1000   #transfer to meter for easy use
+    #user input in a ;ist of data and para user wanna take out
+    #The function will scan through all the para and get all the info need for the listed para
+    #then it will sum it up in a dict and output that out for other func to use
+    def getValue(self,param_group):
+        #scan for all the Attribute in the param_group, how to check?
+        #how can we sure that all the data that we receive is right with the attribute?
+        #create and empty dict that store all the data
+        dict_data = {}
+        #dict for condition
+        # ALT func 
+        if "ALT" in param_group:
+            while True:
+                timeout  = time.time() + 2
+                #continouslt listen dor messages with a 2 - second timeout 
+                msg = self.drone.recv_match(type=mavutil.mavlink.ALTITUDE, blocking=True, timeout  = timeout)
+                if msg:
+                    #get only the needed data for the need of using
+                    output_msg = msg.altitude_local    
+                    print("ALT data receive successfully!")
+                else:
+                    print("Timeout waiting for message. No GPS found!")
+                    break
+        # GPS func
+        if "GPS" in param_group:
+            #Scan the data stream and search for GPS coordinate
+            while True:
+                #get the abs timeout time by using real time in the instant of the code occur
+                timeout = time.time() + 2
+                # Continuously listen for messages with a 2-second timeout
+                msg = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = timeout)
+                if msg:
+                    # Process the received GPS data if there is data in the parameter 
+                    #DO SOME THINGS
+                    #Scan the data and take only lat lon and alt data that needed for the position estimation
+                    output_msg = {
+                        'lon' : msg.lon,
+                        'lat' : msg.lat,
+                        'MSL_alt' : msg.relative_alt
+                    }
+                    #exg:
+                    print("GPS Coordinate receive success!")
+                    #decode func will be written in the MMQTT for least processing in the drone MCU it self
+                else:
+                    print("Timeout waiting for message. No GPS found!")
+                    break  # Exit the loop after timeout
+        # Battery check up func
+        if "BAT" in param_group:
+            pass
+        return output_msg
     #func two
 
 

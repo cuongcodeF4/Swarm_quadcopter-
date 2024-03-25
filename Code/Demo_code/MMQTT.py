@@ -14,7 +14,7 @@ import json
 import time
 import paho.mqtt.client as mqtt_client                          #need to be install using pip install paho-mqtt if not have
 
-
+droneNum = 0        # assign for the number of drone in the pack 
 
 def on_connect(client, userdata, flags, rc):                    #Connection call back, use to check wether the connection is good or not
     #check ing call back value
@@ -37,9 +37,11 @@ def on_message(client, userdata, msg, received_messages, topic):                
         except Exception as e:
             print(f"Error processing message from {topic}: {e}")
 
-def getPub_msg():
+def getCommand():
+
     #return format ["topic", msg]
     #chose topic to pub to 
+
     available_topic = ['sysCom', 'droneCom', 'conCom', 'back']
     while True:
         topic = input('Topic select [sysCom][droneCom][conCom][Back]: ')
@@ -92,6 +94,7 @@ def getPub_msg():
         else:
             print("ERROR COMMAND")
             return None
+
 
 def publish(ID,topic, msg):                                                #Publish function, msg is in dict format
     #para usage: ID, msg
@@ -196,19 +199,105 @@ def subscribe(ID):                                              #return back the
         client.disconnect()
     #sum uo the msg and out put
     if received_messages:
-        msg = ["droneFB", received_messages]
+        msg = received_messages
     else:
         pass
     return   msg# Return None if no messages received
 
+def decode(command):
+
+    pass
+
 def comCheckUp(ID):                                               #Check up the connection between drone and master so that we know if they can send info to each other                            
     #set up as a normal publish func
     #but with the msg as a command that send to all the topic to test all the msg
+    #when the master pub up the drone should answer with format "CP_droneNum" }
+    #scan the string and do a check list to see if the master receive enough drone nums feed back
     msg = "comCheckUp"
     test_topic = ['sysCom', 'droneCom', 'conCom']
     for topic in test_topic:
         #pub to all the topic to see what happen
         publish(ID, topic, msg)
-        #wait a bit for the drone to process the info
-        subscribe(ID)
+        #start counting down the time 
+        timeBegin = time.time()
+        #wait for a bit for the drone to pub there answer
+        temp_msg_stack = []
+        while timeout < 2:
+            #get the msg from the droneFB channel
+            msg = subscribe(ID)
+            if msg in temp_msg_stack:
+                #skip if the msg is the same
+                #fail safe if duplicate ever occur
+                pass
+            else:
+                #add in pack for later counting
+                temp_msg_stack.extend(msg)
+            #timeout function
+            timeEnd = time.time() 
+            timeout = timeEnd - timeBegin 
+        #Scan the msg to count out the amount of drone that is responsive
+        droneNumCounted = len(temp_msg_stack)
+        if droneNum == droneNumCounted:
+            print(f"comCheckUp on '{topic}' successful")
+            print("Continue to the next topic")
+        else:
+            successDroneNum = ""
+            #report back the fail drone to the terminal so that the user know
+            #scan for all the success drone
+            for drone_msg in temp_msg_stack:
+                successDroneNum += ", " + drone_msg.split('_')[-1]
+            print(f"Failure comCheckUp on '{topic}'")
+            print("Success connection on Drone: %s", successDroneNum)
+            print("Continue to the next topic")
+
+def posReport(ID):
+    #send the command to the sysCom topic to announce for the drone
+    publish(ID, "sysCom", "posReport")
+    time.sleep(1)
+    #the return data will be a dict consist of {Num, lon, lat, alt}
+    msg  = subscribe(ID)
     pass
+
+def execute(ID, command):
+    #Run the function needed for the command selected
+    #Need to scan and take in the command format with the right data format
+    #take out the topic data
+    topic = command[0]
+    msg  = command[1]
+    available_topic = ['sysCom', 'droneCom', 'conCom']
+    #create three command pack for the three topic 
+
+    sysCom_commandPack = {
+        "comCheckUp" : "func1",  
+        "posReport" : "func2",
+        "sysReport" : "func 3",
+        "setGPSOrigin" : "func 4"
+    }
+    droneCom_commandPack = {
+        "tunning" : "func 1",
+        "arm" : "func2",
+        "takeoff" : "func 3",
+        "land" : "func 4",
+        "unitTest" :"func 5"
+    }
+    conCom_commandPack = {
+        "arm" : "func 1",
+        "takeoff" : "func 2",
+        "land" : "func 3",
+        "init" : "func 4"
+    }
+    #scan the data to see what to excuse
+    if topic == "sysCom":
+        #Using the msg output as and atribute to run all funcs without any long if else chang
+        sysCom_commandPack[msg]() 
+        pass
+    elif topic == "droneCom":
+        droneCom_commandPack[msg]()
+        pass
+    else:
+        conCom_commandPack[msg]()
+        pass
+    #scan the msg to see which func need to be init or run
+
+    pass
+    return None

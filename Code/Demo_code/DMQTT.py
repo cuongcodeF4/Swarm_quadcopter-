@@ -20,10 +20,13 @@
 import json
 import time
 import paho.mqtt.client as mqtt_client                          #need to be install using pip install paho-mqtt if not have
+import pymavlink_func                                           #Input in the pymavlink lib to use the side function
 
 
-#SIDE PARAMETER
+#INIT NEEDED PARAMETER
 IsInControlled = False
+#INIT PYMAVLINK FUNCTION
+drone = pymavlink_func.MAV()
 
 
 def get_msg(sub_msgReceived):
@@ -181,7 +184,7 @@ def subscribe(ID, topic):
     
 
 #thuc hien cau lenh nhan duoc sau khi chạy hàm pub 
-def execute(command_pack):
+def execute(ID, command_pack):
     #available command
     commandAvailable = [
         'comCheckUp',
@@ -193,7 +196,10 @@ def execute(command_pack):
         if command_pack[0] == "droneCom" and IsInControlled:
             pass
         elif command_pack[0] == "sysCom":
-
+            if command_pack[1] == "comCheckUp":
+                comCheckUp(ID)
+            elif command_pack[1] == "posReport":
+                posReport(ID)
             pass
         else:
             pass
@@ -203,6 +209,27 @@ def execute(command_pack):
 #cần add them para msg, có các trường hợp sẽ pub ra cho router, làm. một hàm duyệt tâts cả các biến
 # được thay đổi và chỉ cho những biến đó được hiển thị trong msg khi pub
 # forma khi chỉnh có thể là parameter.msg.<inf_id> = <value>
-def comCheckUp_func():
 
-    pass
+
+#=================== SIDE FUNCTION ========================#
+
+def comCheckUp(ID):
+    #when the receive the comCheckUp msg, it will scan the info and pub on to the main stream the func needed 
+    #get the ID and the Num of the drone to pub to the comCheckUp topic
+    Num  = ID.Num
+    pub_msg  = "CP_" + Num
+    #pub the confirm msg to the drone FB topic
+
+    #pub only once and then stop and wait
+    publish(ID, pub_msg)
+
+def posReport(ID):
+    #what to do when receive the msg
+    #get the needed data from the pixhawk
+    data = pymavlink_func.MAV.getValue("GPS")
+    data["local_alt"] = pymavlink_func.MAV.getValue("ALT")
+    #Add in the data of drone Num 
+    data["Num"] = ID.Num
+
+    #send back the data pack to the master com for decode and analyse
+    publish(ID, data)
