@@ -14,6 +14,7 @@ class droneMQTT(object):
         self.username = username
         self.password = password
         self.payload = None
+        self.Client = mqtt_client.Client(self.client_id,protocol=5)  # Use the MQTT version 5
 
     def connectBroker(self,prop=None):
         """Connect a client to the broker.
@@ -28,13 +29,11 @@ class droneMQTT(object):
         def on_disconnect( self,userdata, rc, properties):
             print("Disconnected with MQTT Broker!= ",rc)
 
-        self.Client = mqtt_client.Client(self.client_id,protocol=5)  # Use the MQTT version 5
         self.Client.username_pw_set(self.username, self.password)
         self.Client.on_connect = on_connect
         self.Client.on_publish = on_publish
         self.Client.will_set(TOPIC_LAST_WILL,payload=SYS_INVALID ,qos=1,retain=False)
         self.Client.connect(self.broker, self.port, 60,clean_start =0, properties=prop)
-        return self.Client
     
     def publishMsg(self,topic,payload):
         # payload= {}
