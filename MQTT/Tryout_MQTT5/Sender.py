@@ -16,21 +16,21 @@ if __name__ == '__main__':
 
     # Initial the Master to send command 
     Master = droneMQTT(client_id="Master")
-    MasterSender = Master.connectBroker()
+    Master.connectBroker()
     Master.logger()
     time.sleep(WAIT_TO_CONNECT)
 
     #Send all command
     for cmd in LstData:
-        MasterSender.loop_start()
+        Master.Client.loop_start()
         Master.publishMsg(topic= DRONE_COM, payload=cmd)
-        MasterSender.loop_stop()
+        Master.Client.loop_stop()
 
     MasterCheck = droneMQTT(client_id="CheckConnect")
-    MasterCheckRecv = MasterCheck.connectBroker()
+    MasterCheck.connectBroker()
     time.sleep(WAIT_TO_CONNECT)
     MasterCheck.subscribe(topic=TOPIC_LAST_WILL)
-    MasterCheckRecv.loop_forever()
+    MasterCheck.Client.loop_forever()
 
 
 
