@@ -3,6 +3,8 @@ import glob
 import subprocess
 import time
 import os, signal
+import threading
+import socket
 
 # Define DroneConfig class
 class DroneConfig:
@@ -60,6 +62,23 @@ def stop_mavlink_routing(mavlink_router_process):
     else:
         print("MAVLink routing is not running.")
 
+# Function to send the drone state
+def send_drone_state():
+    gcs_ip = drone_config.config['gcs_ip']
+    gcs_port = drone_config.config['gcs_port']
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    while True:
+        try:
+            # Send the drone state to the GCS
+            drone_state = f"Drone state: {drone_config.config['state']}"
+            print(drone_state)
+            sock.sendto(drone_state.encode(), (gcs_ip, gcs_port))
+            time.sleep(1)
+        except KeyboardInterrupt:
+            print("Telemetry thread stopped.")
+            break
+
 def main():
     print("Start the coordinator")
 
@@ -69,13 +88,18 @@ def main():
         # print(drone_config.config['gcs_ip'])
         mavlink_router_process = initialize_mavlink()
     
-        while (True):
-            try:
-                pass
-            except KeyboardInterrupt:
-                print("Keyboard interrupt detected.")
-                stop_mavlink_routing(mavlink_router_process)
-                break
+        # Start the telemetry thread
+        print("Starting telemetry thread...")
+        telemetry_thread = threading.Thread(target=send_drone_state)
+        telemetry_thread.start()
+    
+        # while (True):
+        #     try:
+        #         pass
+        #     except KeyboardInterrupt:
+        #         print("Keyboard interrupt detected.")
+        #         stop_mavlink_routing(mavlink_router_process)
+        #         break
     
     except Exception as e:
         print("An error occurred: ", e)
