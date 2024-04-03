@@ -115,8 +115,7 @@ from functions.trajectories import *
 
 def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, start_y, initial_altitude, climb_rate,move_speed, hold_time , step_time, output_file="active.csv"):
 
-   
-   
+
     # Define an if-elif block to map shape names to enumeration or number codes
     if shape_name == "eight_shape":
         shape_code = 0
@@ -173,37 +172,18 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
         # Raise an error for invalid shape names
         raise ValueError(f"Invalid shape name: {shape_name}")
 
-   
-   
-    header = ["idx", "t", "px", "py", "pz", "vx", "vy", "vz", "ax", "ay", "az", "yaw", "ledr", "ledg", "ledb"]
-
+    header = ["idx", "t", "px", "py", "pz", "vx", "vy", "vz", "ax", "ay", "az", "yaw"]
     with open(output_file, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(header)
 
-        # Calculate climb time and steps
-        climb_time = initial_altitude / climb_rate
-        climb_steps = int(climb_time / step_time)
-        # Write climb trajectory
-        for i in range(climb_steps):
-            t = i * step_time
-            x = 0
-            y = 0
-            z = (climb_rate * t) * -1
-            vx = 0.0
-            vy = 0.0
-            vz = -climb_rate
-            yaw = 0
-            row = [i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw, "nan", "nan", "nan"]
-            # writer.writerow(row)
-
-    # Move to start position
+        # Move to start position
         move_start_distance = math.sqrt(start_x**2 + start_y**2)
         move_start_time = move_start_distance / move_speed
         move_start_steps = int(move_start_time / step_time)
 
         for i in range(move_start_steps):
-            t = climb_time + i * step_time
+            t = i * step_time
             ratio = i / move_start_steps
             x = start_x * ratio
             y = start_y * ratio
@@ -212,14 +192,14 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
             vy = move_speed * (start_y / move_start_distance)
             vz = 0.0
             yaw = 0
-            row = [climb_steps + i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw, "nan", "nan", "nan"]
+            row = [i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
             writer.writerow(row)
 
-    # Hold start position for n seconds
+        # Hold start position for n seconds
         hold_steps = int(hold_time / step_time)
 
         for i in range(hold_steps):
-            t = climb_time + move_start_time + i * step_time
+            t = move_start_time + i * step_time
             x = start_x
             y = start_y
             z = -1 * initial_altitude
@@ -227,7 +207,7 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
             vy = 0.0
             vz = 0.0
             yaw = 0
-            row = [climb_steps + move_start_steps + i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw, "nan", "nan", "nan"]
+            row = [move_start_steps + i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
             writer.writerow(row)    
 
         # Check if start position is different from first setpoint of maneuver
@@ -246,7 +226,7 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
 
             # Move drone to first setpoint of maneuver at 2 m/s
             for i in range(move_steps):
-                t = climb_time + move_start_time + hold_time + i * step_time
+                t = move_start_time + hold_time + i * step_time
                 ratio = i / move_steps
                 x = start_x + (maneuver_start_x  ) * ratio
                 y = start_y + (maneuver_start_y ) * ratio
@@ -255,12 +235,12 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
                 vy = move_speed * (maneuver_start_y ) / move_distance
                 vz = 0.0
                 yaw = 0
-                row = [climb_steps + move_start_steps + hold_steps  + i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw, "nan", "nan", "nan"]
+                row = [move_start_steps + hold_steps  + i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
                 writer.writerow(row)
 
             # Hold drone at first setpoint for 2 seconds
             for i in range(hold_steps):
-                t = climb_time + move_start_time + move_time + hold_time + i * step_time
+                t = move_start_time + move_time + hold_time + i * step_time
                 x =  start_x + shape_fcn(0, maneuver_time, diameter, direction, initial_altitude, step_time, *shape_args)[0]
                 y = start_y + shape_fcn(0, maneuver_time, diameter, direction, initial_altitude, step_time, *shape_args)[1]
                 z = -1 * initial_altitude
@@ -268,14 +248,14 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
                 vy = 0.0
                 vz = 0.0
                 yaw = 0
-                row = [climb_steps + move_steps + move_start_steps + hold_steps  + i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw, "nan", "nan", "nan"]
+                row = [move_steps + move_start_steps + hold_steps  + i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
                 writer.writerow(row)
 
             # Calculate the start time after maneuver start
-            start_time = climb_time + move_start_time + move_time + hold_time  + hold_time
+            start_time = move_start_time + move_time + hold_time  + hold_time
         else:
             # Calculate the start time after maneuver start
-            start_time = climb_time + move_start_time + hold_time
+            start_time = move_start_time + hold_time
             move_distance=0
             move_steps =0
             move_time=0
@@ -289,16 +269,14 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
 
         # Fly the shape trajectory
         for step in range(maneuver_steps):
-            
             # Call the appropriate shape function based on the shape code
-            
             x, y, z, vx, vy, vz = shape_fcn(step, maneuver_time, diameter, direction, initial_altitude,step_time, *shape_args)
             x += start_x
             y += start_y
-           
+
             yaw = 0
             missionTime = start_time + step * step_time
-            row = [climb_steps + move_start_steps + hold_steps + maneuver_steps + move_steps + hold_steps + step, missionTime, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw, "nan", "nan", "nan"]
+            row = [move_start_steps + hold_steps + maneuver_steps + move_steps + hold_steps + step, missionTime, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
             writer.writerow(row)
 
 
