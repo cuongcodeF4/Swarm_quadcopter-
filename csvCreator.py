@@ -172,7 +172,7 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
         # Raise an error for invalid shape names
         raise ValueError(f"Invalid shape name: {shape_name}")
 
-    header = ["idx", "t", "px", "py", "pz", "vx", "vy", "vz", "ax", "ay", "az", "yaw"]
+    header = ["t", "px", "py", "pz", "vx", "vy", "vz", "ax", "ay", "az", "yaw"]
     with open(output_file, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(header)
@@ -192,7 +192,7 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
             vy = move_speed * (start_y / move_start_distance)
             vz = 0.0
             yaw = 0
-            row = [i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
+            row = [t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
             writer.writerow(row)
 
         # Hold start position for n seconds
@@ -207,7 +207,7 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
             vy = 0.0
             vz = 0.0
             yaw = 0
-            row = [move_start_steps + i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
+            row = [t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
             writer.writerow(row)    
 
         # Check if start position is different from first setpoint of maneuver
@@ -235,7 +235,7 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
                 vy = move_speed * (maneuver_start_y ) / move_distance
                 vz = 0.0
                 yaw = 0
-                row = [move_start_steps + hold_steps  + i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
+                row = [t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
                 writer.writerow(row)
 
             # Hold drone at first setpoint for 2 seconds
@@ -248,7 +248,7 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
                 vy = 0.0
                 vz = 0.0
                 yaw = 0
-                row = [move_steps + move_start_steps + hold_steps  + i, t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
+                row = [t, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
                 writer.writerow(row)
 
             # Calculate the start time after maneuver start
@@ -276,7 +276,7 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
 
             yaw = 0
             missionTime = start_time + step * step_time
-            row = [move_start_steps + hold_steps + maneuver_steps + move_steps + hold_steps + step, missionTime, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
+            row = [missionTime, x, y, z, vx, vy, vz, "nan", "nan", "nan", yaw]
             writer.writerow(row)
 
 
@@ -284,7 +284,7 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
 
 
 # Example usage
-shape_name="circle"
+shape_name="square"
 diameter = 30.0
 direction = 1
 maneuver_time = 60.0
