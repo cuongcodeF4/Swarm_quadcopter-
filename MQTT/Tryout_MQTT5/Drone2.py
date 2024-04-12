@@ -11,7 +11,7 @@ sendInit = NOT_SEND_INIT
 
 def receive_data(Drone:droneMQTT,topic):
     # Initial the Client to receive command 
-    Drone.connectBroker()
+    Drone.connectBroker(typeClient=TYPE_CLIENT_NORMAL)
     Drone.logger()
     time.sleep(WAIT_TO_CONNECT)
     Drone.subscribe(topic=topic)
@@ -27,23 +27,22 @@ def handleData(Drone:droneMQTT):
                 if value == CMD:
                     msg_recv= message.payload.decode()
                     msg_recv_dict = ujson.loads(msg_recv)
-                    msg_recv = msg_recv_dict["drone1"]
+                    msg_recv = msg_recv_dict["drone2"]
                     print(f"Received `{msg_recv}`")
-                elif value == MASTERLSTWIL:
+                elif value == MASTERLSTWIL:              
                     print("[Execute] Handle master init message")
                     msgInit= message.payload.decode()
                     masterSts = int(msgInit)
                     if masterSts == MASTER_OFFLINE:
-                        print("[DEBUG] Master disconnect...")
                         sendInit = NOT_SEND_INIT
                     
 if __name__ == '__main__':
-    print("[DEBUG]Drone1 start receive message from Master")
-    clientRecvMsg = droneMQTT(client_id="Drone1")
+    print("[DEBUG]Drone2 start receive message from Master")
+    clientRecvMsg = droneMQTT(client_id="Drone2")
     thdRevDataFromMaster = threading.Thread(target=receive_data, args=(clientRecvMsg,DRONE_COM,)) 
     thdRevDataFromMaster.start()
 
-    clientInit    = droneMQTT(client_id="DroneInit1")
+    clientInit    = droneMQTT(client_id="DroneInit2")
     clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
     time.sleep(WAIT_TO_CONNECT)
     
