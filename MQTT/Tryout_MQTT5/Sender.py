@@ -27,7 +27,7 @@ data= Queue()
 for drone in range(DRONE_NUMBER):
     payload[f"drone{drone+1}"] = messagePayload[drone]
 msg = ujson.dumps(payload)
-data.put(msg)
+# data.put(msg)
 
 def MasterReceiveLW(masterLW:droneMQTT,topic):
     # Initial the Client to receive command 
@@ -61,20 +61,17 @@ if __name__ == '__main__':
     #Initial the current drone connected to broker 
     droneConnected = 0
     masterRecvLW     = droneMQTT(client_id="MaterLstWil")
-
-
-
     thdMasterRecvLW  = threading.Thread(target=MasterReceiveLW, args=(masterRecvLW,DRONE_COM,)) 
     thdMasterRecvLW.start()
 
     # Initial the Master to send command 
     Master           = droneMQTT(client_id="Master")
-    Master.connectBroker(typeClient= TYPE_CLIENT_INIT)
+    Master.connectBroker(typeClient= TYPE_CLIENT_MASTER)
     Master.logger()
     time.sleep(WAIT_TO_CONNECT)
 
     while True:
-        print("[DEBUG] DRONE CONNECT= ", droneConnected)
+        print("[DEBUG] DRONE CONNECT= ",droneConnected,end="\r")
         if droneConnected < DRONE_NUMBER:
             custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
             custom_properties.UserProperty = [("typeMsg",MASTERLSTWIL)]
@@ -82,7 +79,6 @@ if __name__ == '__main__':
             Master.Client.loop_start()
             print("[DEBUG] Master check the number drone connected..")
             Master.Client.publish(topic= DRONE_COM, payload= MASTER_ONLINE,qos=2, properties=custom_properties)  
-            Master.Client.loop_stop()
             time.sleep(2) 
         elif not data.empty():
             print("[DEBUG] Master sends message when there are enough connections ")

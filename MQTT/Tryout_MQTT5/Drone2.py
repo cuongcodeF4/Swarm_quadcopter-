@@ -29,7 +29,7 @@ def handleData(Drone:droneMQTT):
                     msg_recv_dict = ujson.loads(msg_recv)
                     msg_recv = msg_recv_dict["drone2"]
                     print(f"Received `{msg_recv}`")
-                elif value == MASTERLSTWIL:              
+                elif value == MASTERLSTWIL:               
                     print("[Execute] Handle master init message")
                     msgInit= message.payload.decode()
                     masterSts = int(msgInit)
@@ -49,6 +49,7 @@ if __name__ == '__main__':
     # thdHandleData = threading.Thread(target=handleData, args=(clientRecvMsg,))
     # thdHandleData.start()
     while True:
+        print("[DEBUG] Value sendInit= {}".format(sendInit),end="\r")
         if masterSts == MASTER_ONLINE and sendInit == NOT_SEND_INIT:
             sendInit = SEND_INIT_SUCCESS
             clientInit.droneInit(DRONE_COM)

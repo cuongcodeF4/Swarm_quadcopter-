@@ -50,9 +50,11 @@ if __name__ == '__main__':
     # thdHandleData = threading.Thread(target=handleData, args=(clientRecvMsg,))
     # thdHandleData.start()
     while True:
+        print("[DEBUG] Value sendInit= {}".format(sendInit),end="\r")
         if masterSts == MASTER_ONLINE and sendInit == NOT_SEND_INIT:
             sendInit = SEND_INIT_SUCCESS
             clientInit.droneInit(DRONE_COM)
+            print("CHECKKKKKKKK")
             clientInit.logger()
         handleData(clientRecvMsg)
 
