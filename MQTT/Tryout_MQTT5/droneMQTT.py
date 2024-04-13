@@ -82,7 +82,7 @@ class droneMQTT(object):
         propInit = mqtt_client.Properties(props.PacketTypes.PUBLISH)
         propInit.UserProperty = [("typeMsg",INITMSG)]
         self.Client.publish(topic= topic, payload=ADD_CONNECT, qos=2,retain=False,properties=propInit)
-        self.Client.loop_stop()
+        # self.Client.loop_stop()
 
     def droneDisconnect(self,topic):
         propDis = mqtt_client.Properties(props.PacketTypes.PUBLISH)
