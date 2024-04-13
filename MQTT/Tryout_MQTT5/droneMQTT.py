@@ -118,36 +118,36 @@ class droneInstance():
     def handleData(self,Drone:droneMQTT): 
         if not Drone.queueData.empty():
             message = Drone.queueData.get()
-            properties = message.properties
-            for key, value in properties.UserProperty:
-                    if key=="typeMsg" and value == CMD:
-                        msg_recv= message.payload.decode()
-                        msg_recv_dict = ujson.loads(msg_recv)
-                        msg_recv = msg_recv_dict[self.drone]
-                        print(f"Received `{msg_recv}`")
-                        if self.droneConnected == DRONE_NUMBER:
-                            print("[DEBUG] Send data to pymavlink")
-                    elif key=="typeMsg" and value == MASTERLSTWIL:
-                        print("[DEBUG] Master online",end="\r")
-                        msgInit= message.payload.decode()
-                        self.masterSts = int(msgInit)
-                        if self.masterSts == MASTER_OFFLINE:
-                            self.droneConnected = 0
-                            print("[DEBUG] Master disconnect...")
-                            self.sendInit = NOT_SEND_INIT
-                    elif key=="typeMsg" and value == LSTWILLMSG:
-                        print("[Execute] Handle last will")
-                        msgLstWil= message.payload.decode()
-                        if self.masterSts == MASTER_ONLINE:
-                            self.droneConnected += int(msgLstWil) 
-                            print("[DEBUG] Drone was connected = ", self.droneConnected)
-                    elif key=="nameDrone":
-                        print("[DEBUG] {} disconnected. Waiting connect again... ".format(value))
-                    elif key=="typeMsg" and value == INITMSG:            
-                        msgInit= message.payload.decode()
-                        if self.masterSts == MASTER_ONLINE:
-                            self.droneConnected += int(msgInit) 
-                            print("[DEBUG] Drone was connected = ", self.droneConnected)
+            properties = dict(message.properties.UserProperty)
+            if properties['typeMsg'] == CMD: 
+                msg_recv= message.payload.decode()
+                msg_recv_dict = ujson.loads(msg_recv)
+                msg_recv = msg_recv_dict[self.drone]
+                print(f"Received `{msg_recv}`")
+                if self.droneConnected == DRONE_NUMBER:
+                    print("[DEBUG] Send data to pymavlink")
+            elif properties['typeMsg'] == MASTERLSTWIL: 
+                print("[DEBUG] Master online",end="\r")
+                msgInit= message.payload.decode()
+                self.masterSts = int(msgInit)
+                if self.masterSts == MASTER_OFFLINE:
+                    self.droneConnected = 0
+                    print("[DEBUG] Master disconnect...")
+                    self.sendInit = NOT_SEND_INIT
+                else:
+                    self.droneConnected = int(properties["droneConnect"])
+            elif properties['typeMsg'] == LSTWILLMSG: 
+                print("[Execute] Handle last will")
+                msgLstWil= message.payload.decode()
+                if self.masterSts == MASTER_ONLINE:
+                    self.droneConnected += int(msgLstWil) 
+                    print("[DEBUG] Drone was connected = ", self.droneConnected)
+                print("[DEBUG] {} disconnected. Waiting connect again... ".format(properties['nameDrone']))
+            elif properties['typeMsg'] == INITMSG:              
+                msgInit= message.payload.decode()
+                if self.masterSts == MASTER_ONLINE:
+                    self.droneConnected += int(msgInit) 
+                    print("[DEBUG] Drone was connected = ", self.droneConnected)
 
 
 
