@@ -18,9 +18,8 @@ def receive_data(Drone:droneMQTT,topic):
     Drone.Client.loop_forever()
 
 def handleData(Drone:droneMQTT): 
-    global masterSts,sendInit
+    global masterSts,sendInit,droneConnected
     if not Drone.queueData.empty():
-        print("[DEBUG] Drone received a message")
         message = Drone.queueData.get()
         properties = message.properties
         for _, value in properties.UserProperty:
@@ -29,15 +28,30 @@ def handleData(Drone:droneMQTT):
                     msg_recv_dict = ujson.loads(msg_recv)
                     msg_recv = msg_recv_dict["drone3"]
                     print(f"Received `{msg_recv}`")
+                    if droneConnected == DRONE_NUMBER:
+                        print("[DEBUG] Send data to pymavlink")
                 elif value == MASTERLSTWIL:
-                    print("[Execute] Handle master init message")
+                    print("[DEBUG] Master online",end="\r")
                     msgInit= message.payload.decode()
                     masterSts = int(msgInit)
                     if masterSts == MASTER_OFFLINE:
+                        droneConnected = 0
                         print("[DEBUG] Master disconnect...")
                         sendInit = NOT_SEND_INIT
+                elif value == LSTWILLMSG:
+                    print("[Execute] Handle last will")
+                    msgLstWil= message.payload.decode()
+                    if masterSts == MASTER_ONLINE:
+                        droneConnected += int(msgLstWil) 
+                        print("[DEBUG] Drone was connected = ", droneConnected)
+                elif value == INITMSG:            
+                    msgInit= message.payload.decode()
+                    if masterSts == MASTER_ONLINE:
+                        droneConnected += int(msgInit) 
+                        print("[DEBUG] Drone was connected = ", droneConnected)
                     
 if __name__ == '__main__':
+    droneConnected = 0
     print("[DEBUG]Drone3 start receive message from Master")
     clientRecvMsg = droneMQTT(client_id="Drone3")
     thdRevDataFromMaster = threading.Thread(target=receive_data, args=(clientRecvMsg,DRONE_COM,)) 

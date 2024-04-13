@@ -36,7 +36,7 @@ class droneMQTT(object):
 
         if typeClient == TYPE_CLIENT_NORMAL:
             propLW = mqtt_client.Properties(props.PacketTypes.WILLMESSAGE)
-            propLW.UserProperty = [("typeMsg",LSTWILLMSG)]
+            propLW.UserProperty = [("typeMsg",LSTWILLMSG),("nameDrone",self.client_id)]
             self.Client.will_set(DRONE_COM,payload=SUB_CONNECT ,qos=2,retain=False,properties=propLW)
 
         elif typeClient == TYPE_CLIENT_MASTER:

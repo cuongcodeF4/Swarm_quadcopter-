@@ -18,26 +18,42 @@ def receive_data(Drone:droneMQTT,topic):
     Drone.Client.loop_forever()
 
 def handleData(Drone:droneMQTT): 
-    global masterSts,sendInit
+    global masterSts,sendInit,droneConnected
     if not Drone.queueData.empty():
-        print("[DEBUG] Drone received a message")
         message = Drone.queueData.get()
         properties = message.properties
-        for _, value in properties.UserProperty:
-                if value == CMD:
+        for key, value in properties.UserProperty:
+                if key=="typeMsg" and value == CMD:
                     msg_recv= message.payload.decode()
                     msg_recv_dict = ujson.loads(msg_recv)
                     msg_recv = msg_recv_dict["drone1"]
                     print(f"Received `{msg_recv}`")
-                elif value == MASTERLSTWIL:
-                    print("[Execute] Handle master init message")
+                    if droneConnected == DRONE_NUMBER:
+                        print("[DEBUG] Send data to pymavlink")
+                elif key=="typeMsg" and value == MASTERLSTWIL:
+                    print("[DEBUG] Master online",end="\r")
                     msgInit= message.payload.decode()
                     masterSts = int(msgInit)
                     if masterSts == MASTER_OFFLINE:
+                        droneConnected = 0
                         print("[DEBUG] Master disconnect...")
                         sendInit = NOT_SEND_INIT
+                elif key=="typeMsg" and value == LSTWILLMSG:
+                    print("[Execute] Handle last will")
+                    msgLstWil= message.payload.decode()
+                    if masterSts == MASTER_ONLINE:
+                        droneConnected += int(msgLstWil) 
+                        print("[DEBUG] Drone was connected = ", droneConnected)
+                elif key=="nameDrone":
+                    print("[DEBUG] {} disconnected. Waiting connect again... ".format(value))
+                elif key=="typeMsg" and value == INITMSG:            
+                    msgInit= message.payload.decode()
+                    if masterSts == MASTER_ONLINE:
+                        droneConnected += int(msgInit) 
+                        print("[DEBUG] Drone was connected = ", droneConnected)
                     
 if __name__ == '__main__':
+    droneConnected = 0
     print("[DEBUG]Drone1 start receive message from Master")
     clientRecvMsg = droneMQTT(client_id="Drone1")
     thdRevDataFromMaster = threading.Thread(target=receive_data, args=(clientRecvMsg,DRONE_COM,)) 
@@ -50,11 +66,9 @@ if __name__ == '__main__':
     # thdHandleData = threading.Thread(target=handleData, args=(clientRecvMsg,))
     # thdHandleData.start()
     while True:
-        print("[DEBUG] Value sendInit= {}".format(sendInit),end="\r")
         if masterSts == MASTER_ONLINE and sendInit == NOT_SEND_INIT:
             sendInit = SEND_INIT_SUCCESS
             clientInit.droneInit(DRONE_COM)
-            print("CHECKKKKKKKK")
             clientInit.logger()
         handleData(clientRecvMsg)
 

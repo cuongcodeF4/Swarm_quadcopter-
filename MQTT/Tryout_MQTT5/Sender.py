@@ -27,7 +27,7 @@ data= Queue()
 for drone in range(DRONE_NUMBER):
     payload[f"drone{drone+1}"] = messagePayload[drone]
 msg = ujson.dumps(payload)
-# data.put(msg)
+data.put(msg)
 
 def MasterReceiveLW(masterLW:droneMQTT,topic):
     # Initial the Client to receive command 
@@ -41,17 +41,19 @@ def handleLW(masterLW:droneMQTT):
     if not masterLW.queueData.empty():
         message = masterLW.queueData.get()
         properties = message.properties
-        for _, value in properties.UserProperty:
-                if value == LSTWILLMSG:
+        for key, value in properties.UserProperty:
+                if key=="typeMsg" and value == LSTWILLMSG:
                     print("[Execute] Handle last will")
                     msgLstWil= message.payload.decode()
                     droneConnected += int(msgLstWil) 
                     print("[DEBUG] Drone was connected = ", droneConnected)
-                elif value == INITMSG:
+                elif key=="typeMsg" and value == INITMSG:
                     print("[Execute] Handle init message")
                     msgInit= message.payload.decode()
                     droneConnected += int(msgInit) 
                     print("[DEBUG] Drone was connected = ", droneConnected)
+                elif key=="nameDrone":
+                    print("[DEBUG] {} disconnected. Waiting connect again... ".format(value))
                 else: 
                     pass
                     
@@ -70,8 +72,9 @@ if __name__ == '__main__':
     time.sleep(WAIT_TO_CONNECT)
 
     while True:
-        print("[DEBUG] DRONE CONNECT= ",droneConnected,end="\r")
+        
         if droneConnected < DRONE_NUMBER:
+            print("[DEBUG] DRONE CONNECT= ",droneConnected,end="\r")
             custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
             custom_properties.UserProperty = [("typeMsg",MASTERLSTWIL)]
             #Send all comman 
@@ -86,7 +89,6 @@ if __name__ == '__main__':
             #Send all command
             Master.Client.loop_start()
             Master.publishMsg(topic= DRONE_COM, payload= dataSend, prop =custom_properties)   
-            Master.Client.loop_stop()
         handleLW(masterRecvLW)
 
 
