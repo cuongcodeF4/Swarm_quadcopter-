@@ -47,6 +47,7 @@ def handleLW(masterLW:droneMQTT):
                     msgLstWil= message.payload.decode()
                     droneConnected += int(msgLstWil) 
                     print("[DEBUG] Drone was connected = ", droneConnected)
+
                 elif key=="typeMsg" and value == INITMSG:
                     print("[Execute] Handle init message")
                     msgInit= message.payload.decode()
@@ -76,11 +77,11 @@ if __name__ == '__main__':
         if droneConnected < DRONE_NUMBER:
             print("[DEBUG] DRONE CONNECT= ",droneConnected,end="\r")
             custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
-            custom_properties.UserProperty = [("typeMsg",MASTERLSTWIL)]
+            custom_properties.UserProperty = [("typeMsg",MASTERLSTWIL),("droneConnect",str(droneConnected))]
             #Send all comman 
             Master.Client.loop_start()
             Master.Client.publish(topic= DRONE_COM, payload= MASTER_ONLINE,qos=2, properties=custom_properties)  
-            time.sleep(0.5) 
+            time.sleep(0.1) 
         elif not data.empty():
             print("[DEBUG] Master sends message when there are enough connections ")
             dataSend = data.get()
