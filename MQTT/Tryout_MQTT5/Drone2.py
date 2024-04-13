@@ -34,6 +34,7 @@ def handleData(Drone:droneMQTT):
                     msgInit= message.payload.decode()
                     masterSts = int(msgInit)
                     if masterSts == MASTER_OFFLINE:
+                        print("[DEBUG] Master disconnect...")
                         sendInit = NOT_SEND_INIT
                     
 if __name__ == '__main__':
