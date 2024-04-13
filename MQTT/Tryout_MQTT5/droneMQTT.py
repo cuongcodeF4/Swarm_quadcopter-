@@ -4,6 +4,8 @@ from paho.mqtt import client as mqtt_client
 from paho.mqtt import packettypes as props
 from queue import Queue
 from SymbolicName import *
+import threading
+import ujson
 
 class droneMQTT(object):
     def __init__(self,client_id,broker="mqtt.eclipseprojects.io",port =1883,username="swarmDrone",password="flyIsOkay"):
@@ -90,7 +92,62 @@ class droneMQTT(object):
         self.Client.publish(topic,SUB_CONNECT, qos=2,retain=False,properties=propDis)
 
 
+class droneInstance():
+    def __init__(self,drone):
+        self.drone = drone
+        self.droneConnected = 0
+        self.masterSts   = MASTER_OFFLINE
+        self.sendInit = NOT_SEND_INIT
 
+        self.clientRecvMsg = droneMQTT(client_id = self.drone)
+        thdRevDataFromMaster = threading.Thread(target= self.receive_data, args=(self.clientRecvMsg,DRONE_COM,)) 
+        thdRevDataFromMaster.start()
+
+        self.clientInit    = droneMQTT(client_id=self.drone + "Init")
+        self.clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
+        time.sleep(WAIT_TO_CONNECT)
+
+    def receive_data(self,Drone:droneMQTT,topic):
+        # Initial the Client to receive command 
+        Drone.connectBroker()
+        Drone.logger()
+        time.sleep(WAIT_TO_CONNECT)
+        Drone.subscribe(topic=topic)
+        Drone.Client.loop_forever()
+
+    def handleData(self,Drone:droneMQTT): 
+        if not Drone.queueData.empty():
+            message = Drone.queueData.get()
+            properties = message.properties
+            for key, value in properties.UserProperty:
+                    if key=="typeMsg" and value == CMD:
+                        msg_recv= message.payload.decode()
+                        msg_recv_dict = ujson.loads(msg_recv)
+                        msg_recv = msg_recv_dict[self.drone]
+                        print(f"Received `{msg_recv}`")
+                        if self.droneConnected == DRONE_NUMBER:
+                            print("[DEBUG] Send data to pymavlink")
+                    elif key=="typeMsg" and value == MASTERLSTWIL:
+                        print("[DEBUG] Master online",end="\r")
+                        msgInit= message.payload.decode()
+                        self.masterSts = int(msgInit)
+                        if self.masterSts == MASTER_OFFLINE:
+                            self.droneConnected = 0
+                            print("[DEBUG] Master disconnect...")
+                            self.sendInit = NOT_SEND_INIT
+                    elif key=="typeMsg" and value == LSTWILLMSG:
+                        print("[Execute] Handle last will")
+                        msgLstWil= message.payload.decode()
+                        if self.masterSts == MASTER_ONLINE:
+                            self.droneConnected += int(msgLstWil) 
+                            print("[DEBUG] Drone was connected = ", self.droneConnected)
+                    elif key=="nameDrone":
+                        print("[DEBUG] {} disconnected. Waiting connect again... ".format(value))
+                    elif key=="typeMsg" and value == INITMSG:            
+                        msgInit= message.payload.decode()
+                        if self.masterSts == MASTER_ONLINE:
+                            self.droneConnected += int(msgInit) 
+                            print("[DEBUG] Drone was connected = ", self.droneConnected)
 
 
 
