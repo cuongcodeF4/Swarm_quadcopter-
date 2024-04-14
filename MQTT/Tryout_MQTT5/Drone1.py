@@ -1,32 +1,17 @@
 from droneMQTT import droneMQTT
+from droneMQTT import droneInstance
 from queue import Queue
 import time
-
-WAIT_TO_CONNECT = 1
-ALL_DRONE_ACTIVED = 1
-SYS_INVALID = 0
-
-
-SYS_COM = "topicSystemCom"
-DRONE_COM = "topicDroneCom"
-CONTROL_COM = "topicControlCom"
-
-TOPIC_LAST_WILL = "Drone/LastWill"
-
-lastWillMsg = SYS_INVALID
-dataDrone1 = Queue()
-
+import threading
+from SymbolicName import *
+                 
 if __name__ == '__main__':
-    # Initial the Client to receive command 
-    Drone1 = droneMQTT(client_id="Drone1")
-    Drone1Recv = Drone1.connectBroker()
-    time.sleep(WAIT_TO_CONNECT)
+    drone1 = droneInstance("drone1")
+    while True:
+        if drone1.masterSts == MASTER_ONLINE and drone1.sendInit == NOT_SEND_INIT:
+            drone1.sendInit = SEND_INIT_SUCCESS
+            drone1.clientInit.droneInit(DRONE_COM)
+            drone1.clientInit.logger()
+        drone1.handleData(drone1.clientRecvMsg)
 
-    Drone1Recv.loop_start()
-    #Receive command
-    while dataDrone1.empty() or None in dataDrone1.queue:
-        MsgDrone1 = Drone1.subscribe(topic=DRONE_COM)
-        if MsgDrone1 != None:
-            dataDrone1.put(MsgDrone1)
-    Drone1Recv.loop_stop()
-    print("[INFO] Handle message :",dataDrone1.get())
+ 
