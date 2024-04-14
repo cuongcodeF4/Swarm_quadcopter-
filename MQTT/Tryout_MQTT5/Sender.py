@@ -40,24 +40,19 @@ def handleLW(masterLW:droneMQTT):
     global droneConnected
     if not masterLW.queueData.empty():
         message = masterLW.queueData.get()
-        properties = message.properties
-        for key, value in properties.UserProperty:
-                if key=="typeMsg" and value == LSTWILLMSG:
-                    print("[Execute] Handle last will")
-                    msgLstWil= message.payload.decode()
-                    droneConnected += int(msgLstWil) 
-                    print("[DEBUG] Drone was connected = ", droneConnected)
+        properties = dict(message.properties.UserProperty)
+        if properties['typeMsg'] == LSTWILLMSG:             
+            msgLstWil= message.payload.decode()
+            droneConnected += int(msgLstWil) 
+            print("[DEBUG] Drone was connected = ", droneConnected)
 
-                elif key=="typeMsg" and value == INITMSG:
-                    print("[Execute] Handle init message")
-                    msgInit= message.payload.decode()
-                    droneConnected += int(msgInit) 
-                    print("[DEBUG] Drone was connected = ", droneConnected)
-                elif key=="nameDrone":
-                    print("[DEBUG] {} disconnected. Waiting connect again... ".format(value))
-                else: 
-                    pass
-                    
+        elif properties['typeMsg'] == INITMSG:             
+            print("[Execute] Handle init message")
+            msgInit= message.payload.decode()
+            droneConnected += int(msgInit) 
+            print("[DEBUG] Drone was connected = ", droneConnected)
+            print("[DEBUG] {} disconnected. Waiting connect again... ".format(properties['nameDrone']))
+
 
 if __name__ == '__main__':
     #Initial the current drone connected to broker 
