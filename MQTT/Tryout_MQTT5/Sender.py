@@ -72,8 +72,7 @@ if __name__ == '__main__':
     Master.logger()
     time.sleep(WAIT_TO_CONNECT)
 
-    while True:
-        
+    while True:       
         if droneConnected < DRONE_NUMBER:
             print("[DEBUG] DRONE CONNECT= ",droneConnected,end="\r")
             custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)

@@ -3,9 +3,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from uiSystemDrone import Ui_MainWindow
 
-
-
-
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
