@@ -1,0 +1,40 @@
+Main problem:
+     Drone Frame
+          re-design or keep part of it
+          what need to be fix on the Frame
+          can you scale the drone
+     what do master laptop Pub
+          sycronous pub and sub
+               khi một thông tin được gửi dưới dạng nhiều thành viên đọc, hay nói đơn giản là các dạng thông tin sẽ gửi cho nhiều drone hoặc nhiều drone gửi cho một người thì cần phải có safe check và đồng bộ.
+               ví dụ như nhiều drone gửi thông tin về cho lap thì lap phải biết được số lượng msg mà nó sẽ nhận, từ đó làm một check list để kiểm tra và đếm xem số lượng drone gửi đã đủ và thoả hay chưa. nếu chưa thì không pub confirm msg lên mà vẫn ở chế độ nhận. Các drone khi này sẽ liên tục gửi msg cho đến khi máy master nhận đủ theo check list trước đo và confirm lên broker là all_Rmsg_confirm, thi sau đó drone ngừng gửi.
+               Áp dụng ngược cho master khi master gửi lệnh ra. Mỗi drone nhận xong phải commit or pub msg lên báo cho master là mình đã nhận, sau đó thì có thể đợi và không gửi nữa. Master pahỉ track hết các drone trong set up và khi đủ all thì pub all_Smsg_confirm để thống nhất với tất cả các drone và đồng bộ hoá việc điều khiển (nhiều người nghe và chỉ 1 người nói thì đồng bộ khá dễ)
+          check up signal init
+          check up signal in
+          where do we process that
+          type of command
+          type of format
+          how to assign formation
+               base on what and why
+               how to command a drone to flight to a point or multiple point
+               how to do it simultaneously through out all the drone (maybe sending coordinate first and then start all)
+               what type of formation
+          matrix math, assign problem
+          
+     what do drone listening to
+          command? make a list, how many type of command
+               do we need to split the type of command into two type: sys command and drone command
+               >> Các loại lệnh chính, một loại là lệnh hệ thống, hay system command (sysCom), drone command (droneCom), Control Command (conCom)
+               >> hai phần định dạng này sẽ xem như sufix đặt ở trước lệnh gửi đi trong mạng, dùng để phân biệt rõ và đẩy nhanh quá trình xử lý của drone
+               >>> sysCom: Bao gồm các gói lệnh và câu lệnh cho việc checking up, set up chế độ, chuyển chế độ và các loại fail safe cần thiết. Một lệnh có thể được coi                là sysCom khi nó chịu trách nhiệm truyền các thông tin liên quan đến tình trạng drone, hay các lệnh set up cho drone hay kiểm tra drone khi cần. các dạng                lệnh có thể có như stop, hold, report, init, comCheck. Cũng có thể dùng sysCom để set up một số para cho drone trong giai đoạn ban đầu, như tuỳ chỉnh                    thông số PID chẳng hạn.
+               >>> droneCom: bao gồm các lệnh giúp người dùng tuỳ chỉnh drone, chọn 1 drone để điều khiển bất kỳ, chọn chế độ bay cho drone và chọn chế độ điều khiển                   bầy cho drone. droneCom cũng có thể dùng để asign drone và kêu drone trả tín hiệu và vị trí về máy chủ tức thời.
+               >>> conCom: Tập trung nhiều vào việc đưa ra các tín hiệu điều khiển cũng như tuỳ chỉnh bay. Thiết lập chương trình bay,....
+          other drone coordinate for avoidance?
+          do it need to commute with the master drone or master laptop
+     drone or master laptop
+     what do drone Pub
+          what kind of info?
+          how many time per sec?
+          data pack format? how big is it?
+     Pre-flight routine
+          check up routine
+          fail safe if needed?
