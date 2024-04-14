@@ -41,12 +41,12 @@ class masterMQTT():
             propLW = mqtt_client.Properties(props.PacketTypes.WILLMESSAGE)
             propLW.UserProperty = [("typeMsg",LSTWILLMSG),("nameDrone",self.client_id)]
             self.Client.will_set(DRONE_COM,payload=SUB_CONNECT ,qos=2,retain=False,properties=propLW)
-
         elif typeClient == TYPE_CLIENT_MASTER:
             propLW = mqtt_client.Properties(props.PacketTypes.WILLMESSAGE)
             propLW.UserProperty = [("typeMsg",MASTERLSTWIL)]
             self.Client.will_set(DRONE_COM,payload= MASTER_OFFLINE ,qos=2,retain=False,properties=propLW)
         self.Client.connect(self.broker, self.port, 5 ,clean_start =0)
+    
     #publish handle
     def publishMsg(self,topic,payload):
         
@@ -105,15 +105,15 @@ class droneInstance():
         self.masterSts   = MASTER_OFFLINE
         self.sendInit = NOT_SEND_INIT
 
-        self.clientRecvMsg = droneMQTT(client_id = self.drone)
+        self.clientRecvMsg = masterMQTT(client_id = self.drone)
         thdRevDataFromMaster = threading.Thread(target= self.receive_data, args=(self.clientRecvMsg,DRONE_COM,)) 
         thdRevDataFromMaster.start()
 
-        self.clientInit    = droneMQTT(client_id=self.drone + "Init")
+        self.clientInit = masterMQTT(client_id=self.drone + "Init")
         self.clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
         time.sleep(WAIT_TO_CONNECT)
 
-    def receive_data(self,Drone:droneMQTT,topic):
+    def receive_data(self,Drone:masterMQTT,topic):
         # Initial the Client to receive command 
         Drone.connectBroker()
         Drone.logger()
@@ -121,7 +121,7 @@ class droneInstance():
         Drone.subscribe(topic=topic)
         Drone.Client.loop_forever()
 
-    def handleData(self,Drone:droneMQTT): 
+    def handleData(self,Drone:masterMQTT): 
         if not Drone.queueData.empty():
             message = Drone.queueData.get()
             properties = dict(message.properties.UserProperty)

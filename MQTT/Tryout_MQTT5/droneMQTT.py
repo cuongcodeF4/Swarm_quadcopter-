@@ -12,15 +12,14 @@ import ujsonIS_IN_CONTROLLED = False
 """
 system frame:
 trong hàm main của drone thì drone sẽ cần một hàm nhận lệnh từ hai kênh 
-điều này giải quyết bằng function.subscribe(...)
-sau đó thì phần topic và msg sẽ được lưu lại trong lib
-Người dùng khi này sẽ cho chạy excute
-Phần hàm excute này sẽ quét các giá trị topic và msg heienj thời và cho chạy, (các giá trị topic này chỉ bao gồm sysCom và conCom).
-vì các giá trị topic hiện hành đã được lưu nên excute chỉ cần lấy và quét (cần add fail safe nếu không có topic và msg để excute chạy)
-khi chạy thì excute sẽ quét topic trc và chạy những hàm phù hợp, sysCom hoặc conCom.
-từ trong những hàm này mà excute sẽ tự innit thread và function trong thread sao cho phù hợp.
-Phần việc còn lại là của hàm decode trong mỗi function
--.-
+init sẵn hai đối tượng của hai topic sysCom và conCom
+Tạo hàm excute sub vào kênh đọc topic và cmd, sau đó quét phần topic và cmd để biết được phải chạy lệnh nào 
+function.excute() -  có bao gồm sub và lưu topic, cmd cũng như scan chỉ định lệnh
+
+Viết các hàm cho hai đối tượng sysCom và conCom
+hai đối tượng này sẽ là nơi mà các lệnh pymavlink được áp dungj
+có thể kéo các hàm pymalink qua bên này cho gọn, hoặc để riêng cho dễ debug ( nếu trong các hàm yêu cầu phải chạy nhiều algo và func)
+
 Hàm report 
 chỉ dùng cho việc gửi data vào kênh droneFB
 áp dụng tương tự với trình tự thực hiện hàm excute.
@@ -173,27 +172,25 @@ class droneInstance():
 
 class sysCom ():
     def __init__(self, topic, msg):
-        #create an object for later use
-        drone = droneMQTT()
-        self.topic = topic
-        self.msg = topic
+        pass
     def decode():
         #scan the msg and excute the right command on the pixhawk
         pass
 
 class conCom ():
     def __init__(self, topic, msg):
-        #create an object for later use
-        drone = droneMQTT()
-        self.IS_IN_CONTROLLED = IS_IN_CONTROLLED
-        self.topic = topic
-        self.msg = msg
+        pass
     def decode():
         #scan the msg and excute the right command on the pixhawk
         pass
 
 class function():
-    def __init__(self) -> None:
+    def __init__(self, topic, cmd):
+        MQTT = droneMQTT()
+        systemCommand = sysCom()
+        controlCommand = conCom()
+        self.topic = topic
+        self.cmd = cmd
         pass
     def excute(self):
         pass
