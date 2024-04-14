@@ -234,7 +234,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Control Swarm Drone Panel"))
         self.startMaster.setText(_translate("MainWindow", "Start Master"))
         self.label_3.setText(_translate("MainWindow", "Status log"))
         self.label.setText(_translate("MainWindow", "SYSTEM CONTROL SWARM DRONE"))
