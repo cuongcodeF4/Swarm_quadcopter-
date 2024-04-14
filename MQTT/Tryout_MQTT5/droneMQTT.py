@@ -4,7 +4,24 @@ from paho.mqtt import client as mqtt_client
 
 TOPIC_LAST_WILL = "Drone/LastWill"
 SYS_INVALID = 0
+IS_IN_CONTROLLED = False 
 
+"""
+system frame:
+trong hàm main của drone thì drone sẽ cần một hàm nhận lệnh từ hai kênh 
+điều này giải quyết bằng function.subscribe(...)
+sau đó thì phần topic và msg sẽ được lưu lại trong lib
+Người dùng khi này sẽ cho chạy excute
+Phần hàm excute này sẽ quét các giá trị topic và msg heienj thời và cho chạy, (các giá trị topic này chỉ bao gồm sysCom và conCom).
+vì các giá trị topic hiện hành đã được lưu nên excute chỉ cần lấy và quét (cần add fail safe nếu không có topic và msg để excute chạy)
+khi chạy thì excute sẽ quét topic trc và chạy những hàm phù hợp, sysCom hoặc conCom.
+từ trong những hàm này mà excute sẽ tự innit thread và function trong thread sao cho phù hợp.
+Phần việc còn lại là của hàm decode trong mỗi function
+-.-
+Hàm report 
+chỉ dùng cho việc gửi data vào kênh droneFB
+áp dụng tương tự với trình tự thực hiện hàm excute.
+"""
 
 class droneMQTT(object):
     def __init__(self,client_id,broker="mqtt.eclipseprojects.io",port = 1883,username="swarmDrone",password="flyIsOkay"):
@@ -70,6 +87,37 @@ class droneMQTT(object):
         def on_log(client, userdata, level, buf):
             print(f"[INFO]Log level{level}: {buf}")
         self.Client.on_log = on_log
+
+class sysCom ():
+    def __init__(self, topic, msg):
+        #create an object for later use
+        drone = droneMQTT()
+        self.topic = topic
+        self.msg = topic
+    def decode():
+        #scan the msg and excute the right command on the pixhawk
+        pass
+
+class conCom ():
+    def __init__(self, topic, msg):
+        #create an object for later use
+        drone = droneMQTT()
+        self.IS_IN_CONTROLLED = IS_IN_CONTROLLED
+        self.topic = topic
+        self.msg = msg
+    def decode():
+        #scan the msg and excute the right command on the pixhawk
+        pass
+
+class function():
+    def __init__(self) -> None:
+        pass
+    def excute(self):
+        pass
+    def report(self):
+        pass
+
+
 
 
 
