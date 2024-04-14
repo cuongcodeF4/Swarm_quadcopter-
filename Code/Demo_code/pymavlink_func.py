@@ -98,14 +98,22 @@ class MAV():
     #user input in a ;ist of data and para user wanna take out
     #The function will scan through all the para and get all the info need for the listed para
     #then it will sum it up in a dict and output that out for other func to use
+<<<<<<< HEAD
     def getValue(self,param_group):
+=======
+    def getValue(self,param):
+>>>>>>> cuong
         #scan for all the Attribute in the param_group, how to check?
         #how can we sure that all the data that we receive is right with the attribute?
         #create and empty dict that store all the data
         dict_data = {}
         #dict for condition
         # ALT func 
+<<<<<<< HEAD
         if "ALT" in param_group:
+=======
+        if "ALT"  == param:
+>>>>>>> cuong
             while True:
                 timeout  = time.time() + 2
                 #continouslt listen dor messages with a 2 - second timeout 
@@ -113,12 +121,20 @@ class MAV():
                 if msg:
                     #get only the needed data for the need of using
                     output_msg = msg.altitude_local    
+<<<<<<< HEAD
                     print("ALT data receive successfully!")
+=======
+                    print("Local ALT data receive successfully!")
+>>>>>>> cuong
                 else:
                     print("Timeout waiting for message. No GPS found!")
                     break
         # GPS func
+<<<<<<< HEAD
         if "GPS" in param_group:
+=======
+        if "GPS" == param :
+>>>>>>> cuong
             #Scan the data stream and search for GPS coordinate
             while True:
                 #get the abs timeout time by using real time in the instant of the code occur
@@ -141,7 +157,11 @@ class MAV():
                     print("Timeout waiting for message. No GPS found!")
                     break  # Exit the loop after timeout
         # Battery check up func
+<<<<<<< HEAD
         if "BAT" in param_group:
+=======
+        if "BAT" == param :
+>>>>>>> cuong
             pass
         return output_msg
     #func two

@@ -12,6 +12,15 @@ drone2.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (drone1.target_system, drone1.target_component))
 print("Heartbeat from system (system %u component %u)" % (drone2.target_system, drone2.target_component))
 
+<<<<<<< HEAD
+=======
+
+
+
+
+
+
+>>>>>>> cuong
 class Drone():
     def __init__(self):
         self.arm_command = 1  # Start arm 
@@ -40,9 +49,13 @@ class Drone():
         time.sleep(7)
 
         # Movement for drone 
+<<<<<<< HEAD
         drone.mav.send(mavutil.mavlink.MAVLink_set_position_target_local_ned_message(10,drone.target_system, 
                                     drone.target_component,mavutil.mavlink.MAV_FRAME_LOCAL_NED ,self.type_mask,direction,direction,0,0,0,0,0,0,0,0,0))
         print("[INFO] Direction =",direction)
+=======
+        
+>>>>>>> cuong
         # msg = drone.recv_match(type= "LOCAL_POSITION_NED",blocking = False)ll
         # print("[INFO] Message feedback from local position:",msg)
 
