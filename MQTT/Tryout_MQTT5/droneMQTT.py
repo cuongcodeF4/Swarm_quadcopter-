@@ -1,14 +1,18 @@
 import time
 import json
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5 import QtCore, QtGui
 from paho.mqtt import client as mqtt_client
 from paho.mqtt import packettypes as props
 from queue import Queue
 from SymbolicName import *
 import threading
 import ujson
-
+from uiSysDrone import MyWindow,MasterInit
 class droneMQTT(object):
     def __init__(self,client_id,broker="mqtt.eclipseprojects.io",port =1883,username="swarmDrone",password="flyIsOkay"):
+        # self.uiSysDrone = MyWindow()
         self.client_id = client_id
         self.broker = broker
         self.port = port
@@ -17,14 +21,21 @@ class droneMQTT(object):
         self.payload = None
         self.Client = mqtt_client.Client(self.client_id,protocol=5)  # Use the MQTT version 5
         self.queueData  = Queue()
+        self.log = Queue()
+        self.status = CONNECT_FAILED
     def connectBroker(self,prop=None,typeClient=TYPE_CLIENT_NORMAL):
+        
         """Connect a client to the broker.
         prop: (MQTT v5.0 only) a Properties instance setting the MQTT v5.0 properties
         to be included. Optional - if not set, no properties are sent.
         """
         def on_connect(client, userdata, flags, reasonCode, properties):
+            self.status = CONNECT_SUCCESS
+            self.log.put( self.client_id + " connected to MQTT Broker: " +str(reasonCode))
             print("[INFO]Connected to MQTT Broker!")
-            print("[INFO]Status",reasonCode )
+            print("[INFO]Status",str(reasonCode) )
+     
+        
         def on_publish(client, userdata, mid):
             pass
             #print("[INFO]Message published with MID "+str(mid))
