@@ -5,9 +5,14 @@ from paho.mqtt import packettypes as props
 from queue import Queue
 from SymbolicName import *
 import threading
+import pymavlinkFunction
 
-import ujsonIS_IN_CONTROLLED = False 
+import ujson
 
+IS_IN_CONTROLLED = False 
+
+WAIT_TO_CONNECT = 1
+MAX_TRIAL = 3
 
 """
 system frame:
@@ -35,6 +40,7 @@ class droneMQTT(object):
         self.payload = None
         self.Client = mqtt_client.Client(self.client_id,protocol=5)  # Use the MQTT version 5
         self.queueData  = Queue()
+
     def connectBroker(self,prop=None,typeClient=TYPE_CLIENT_NORMAL):
         """Connect a client to the broker.
         prop: (MQTT v5.0 only) a Properties instance setting the MQTT v5.0 properties
@@ -171,15 +177,64 @@ class droneInstance():
         self.Client.on_log = on_log
 
 class sysCom ():
-    def __init__(self, topic, msg):
-        pass
+    def __init__(self):
+        self.MQTT = droneMQTT()
+        #init client ID for later use
+        self.topic = "droneFB"
+        self.mavlink = pymavlinkFunction.MAV()
+    def comCheckUp(self):
+        #send ACK bit to the drone master
+        ACKbit = "ACK" + self.MQTT.client_id
+        # Initial publishing to the droneFB topic
+        #only true if the code run only once
+        self.MQTT.connectBroker()
+        time.sleep(WAIT_TO_CONNECT)
+        self.MQTT.publishMsg(self.topic,ACKbit,prop=None)
+        self.MQTT.Client.loop_forever()
+    def posReport(self):
+        trial = 0
+        while not outputData and trial <= MAX_TRIAL:
+            #get the needed pos coordinate of the droene it self
+            outputData = self.mavlink.getValue("GPS")
+            outputData.update(self.mavlink.getValue("ALT"))
+            #pub the data onto the droneFB with it own clientID contain in it
+            #let just say that the clientID already be embedded in the msg it self
+            trial += 1
+            if outputData:
+                #after having the data send it to the master to show it on the UI for the user to access.
+                self.MQTT.connectBroker()
+                time.sleep(WAIT_TO_CONNECT)
+                self.MQTT.publishMsg(self.topic,outputData,prop=None)
+                self.MQTT.Client.loop_forever()
+                break
+    def sysReport(self,valueType):
+        trial = 0
+        #scan for all the needed value to see what system value the user wanna get
+        while not outputData and trial <= MAX_TRIAL:
+            if valueType == "BAT":
+                outputData = self.mavlink.getValue("BAT")
+            elif valueType == None:
+                pass
+            elif valueType == None:
+                pass
+            trial += 1
+            if outputData:
+                self.MQTT.connectBroker()
+                time.sleep(WAIT_TO_CONNECT)
+                self.MQTT.publishMsg(self.topic,outputData,prop=None)
+                self.MQTT.Client.loop_forever()
+                break
+    
     def decode():
         #scan the msg and excute the right command on the pixhawk
         pass
 
 class conCom ():
     def __init__(self, topic, msg):
-        pass
+        self.MQTT = droneMQTT()
+        self.mavlink = pymavlinkFunction.MAV()
+    def arm(self, state):
+        self.mavlink.arm(state=1)
     def decode():
         #scan the msg and excute the right command on the pixhawk
         pass

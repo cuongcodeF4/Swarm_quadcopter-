@@ -75,6 +75,7 @@ class masterMQTT():
         def on_message(client, userdata, msg):
             self.queueData.put(msg)
         self.Client.on_message = on_message
+        
     
     def logger(self):
         '''
