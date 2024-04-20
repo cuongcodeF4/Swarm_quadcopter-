@@ -1,5 +1,6 @@
 #khai bao thu vien can thiet
 from pymavlink import mavutil
+from mavutil.mavlink import MAVLinkMessage
 import time
 
 # type of command will be use, make fucntion of those command
@@ -110,15 +111,16 @@ class MAV():
             while True:
                 timeout  = time.time() + 2
                 #continouslt listen dor messages with a 2 - second timeout 
-                msg = self.drone.recv_match(type=mavutil.mavlink.ALTITUDE, blocking=True, timeout  = timeout)
+                msg = self.drone.recv_match(type='ALTITUDE', blocking=True, timeout  = timeout)
                 if msg:
                     #get only the needed data for the need of using
                     output_msg = {
-                        msg.altitude_local
+                        "ATL" : msg.altitude_relative
                     }    
                     print("Local ALT data receive successfully!")
+                    break
                 else:
-                    print("Timeout waiting for message. No GPS found!")
+                    print("Timeout waiting for message. No ALT found!")
                     break
         # GPS func
         if "GPS" == param :
@@ -140,12 +142,41 @@ class MAV():
                     #exg:
                     print("GPS Coordinate receive success!")
                     #decode func will be written in the MMQTT for least processing in the drone MCU it self
+                    break
                 else:
                     print("Timeout waiting for message. No GPS found!")
                     break  # Exit the loop after timeout
         # Battery check up func
         if "BAT" == param :
-            pass
+            while True:
+                timeout  = time.time() + 2
+                #continouslt listen dor messages with a 2 - second timeout 
+                msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout  = timeout)
+                if msg:
+                    #get only the needed data for the need of using
+                    output_msg = {
+                        "BAT_LV" : msg.battery_remaining
+                    }    
+                    print("battery level receive successfully!")
+                    break
+                else:
+                    print("Timeout waiting for message. No message found!")
+                    break
+        if "SENSOR_STATE" == param:
+            while True:
+                timeout  = time.time() + 2
+                #continouslt listen dor messages with a 2 - second timeout 
+                msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout  = timeout)
+                if msg:
+                    #get only the needed data for the need of using
+                    output_msg = {
+                        "SEN_HEALTH" : msg.onboard_control_sensors_health
+                    }    
+                    print("Sensor health receive successfully!")
+                    break
+                else:
+                    print("Timeout waiting for message. No message found!")
+                    break
         return output_msg
     #func two
 
