@@ -6,7 +6,7 @@ import threading
 from SymbolicName import *
                  
 if __name__ == '__main__':
-    drone1 = droneInstance("drone1")
+    drone1 = droneInstance("1")
     while True:
         if drone1.masterSts == MASTER_ONLINE and drone1.sendInit == NOT_SEND_INIT:
             drone1.sendInit = SEND_INIT_SUCCESS
