@@ -9,6 +9,7 @@ from datetime import datetime
 import time
 from SymbolicName import *
 from queue import Queue
+import ujson
         
 try: 
     #Generate file ui python from file.ui
@@ -38,14 +39,14 @@ from uiSystemDrone import Ui_MainWindow
 class MasterInit(QThread):
     updateButton      = pyqtSignal()
     updateConsoleLog  = pyqtSignal(str,str)
-    checkConnectDrone = pyqtSignal(int)
+    checkConnectDrone = pyqtSignal()
     updateDroneSts    = pyqtSignal()
-    def __init__(self,func,master,nbrDrone):
+    def __init__(self,func,master,dataSend):
         super().__init__()
         self.func = func
         self.masterPC = master
-        self.nbrDrone = nbrDrone
         self.log = Queue()
+        self.dataSend = dataSend
         print("[DEBUG] Threading init master")
     def run(self):
         self.func()
@@ -57,16 +58,13 @@ class MasterInit(QThread):
                 log = self.log.get()
                 self.updateConsoleLog.emit("INFO",log)
             # Check the number of drone was connected with broker 
-            self.checkConnectDrone.emit(self.nbrDrone)
+            self.checkConnectDrone.emit()
             if not self.masterPC.logMaster.empty():
                 self.log.put(self.masterPC.logMaster.get())  
             if self.masterPC.connectStatus != None:
                 print("[DEBUG] update drone status")
                 self.updateDroneSts.emit()
                 self.masterPC.connectStatus = None # hHelp the signal only callback when client connect or disconnect with broker 
-            
-
-        
             time.sleep(0.1) 
 
 class MyWindow(QMainWindow):
@@ -95,6 +93,14 @@ class MyWindow(QMainWindow):
 
         # Initialize list to store drone labels
         self.drone_labels = []   
+
+        #Queue contain data to send to drone
+        self.dataSend = Queue()
+        #payload to send 
+        self.payload = {}
+
+        self.listCmd = []
+
         self.sizeImage = 100
 
         self.commandList = ["Choose the command","Arm","Takeoff","Land"]       
@@ -106,8 +112,10 @@ class MyWindow(QMainWindow):
         self.typeList = ["All Drones","One Drone"]       
         self.ui.typeControlComboBox.addItems(self.typeList)
         self.ui.typeControlComboBox.activated.connect(self.enableSelectDrone)
+        self.ui.commandComboBox.activated.connect(self.addCommand)
         self.ui.startMaster.clicked.connect(self.runMaster)
         self.ui.stopMaster.clicked.connect(self.stopMaster)
+        self.ui.bntSendCommand.clicked.connect(self.sendCommand)
         self.run = 0 
         
 
@@ -120,9 +128,9 @@ class MyWindow(QMainWindow):
             if self.run == 0:
                 self.run = 1
                 from Sender import Master 
-                self.master = Master()
+                self.master = Master(self.num_drones)
                 self.num_drones = int(self.ui.nrbOfDroneLineEdit.text())
-                self.masterInit = MasterInit(self.master.masterConnectBroker,self.master,self.num_drones)
+                self.masterInit = MasterInit(self.master.masterConnectBroker,self.master,self.dataSend)
                 self.masterInit.start()
                 self.masterInit.updateConsoleLog.connect(self.printLog)
                 self.masterInit.updateButton.connect(self.updateBntStartMaster)
@@ -144,9 +152,28 @@ class MyWindow(QMainWindow):
             self.ui.droneNrmControlLineEdit.setEnabled(True)
         else:
             self.ui.Drone.setEnabled(False)
-    
+    def addCommand(self):
+        self.listCmd= []
+        self.payload= {}
+        cmd = self.ui.commandComboBox.currentText()
+        if cmd != "Choose the command":
+            for _ in range(self.num_drones):
+                self.listCmd.append(cmd)
+            for drone in range(self.num_drones):
+                self.payload[f"{drone+1}"] = self.listCmd[drone]
+                print("[DEBUG] Payload",self.payload )      
+    def sendCommand(self):
+        if self.run ==1:
+            if self.master.droneConnected == self.num_drones:
+                self.dataSend.put(ujson.dumps(self.payload))
+            self.master.masterSendCommand(self.dataSend)
+            print("Queue size after clearing:", self.dataSend.qsize())
+
     def updateDroneStatus(self):
+        self.ui.commandComboBox.setCurrentIndex(0)
         checkSize    = False
+        self.listCmd= []
+        self.payload= {}
         # asymmetrical = False
 
         # Clear existing images drone

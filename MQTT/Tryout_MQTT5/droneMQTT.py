@@ -136,7 +136,10 @@ class droneInstance():
                 msg_recv= message.payload.decode()
                 msg_recv_dict = ujson.loads(msg_recv)
                 msg_recv = msg_recv_dict[self.drone]
-                print(f"Received `{msg_recv}`")
+                timeLog = datetime.now()
+                time = str(timeLog.hour).zfill(2)+":"+str(timeLog.minute).zfill(
+                    2)+":"+str(timeLog.second).zfill(2)+"."+str(timeLog.microsecond//10000)
+                print(f"Received `{msg_recv}` at :'{time}'")
                 if self.droneConnected == DRONE_NUMBER:
                     print("[DEBUG] Send data to pymavlink")
             elif properties['typeMsg'] == MASTERLSTWIL: 
