@@ -1,6 +1,6 @@
 SYS_INVALID = 0
 DRONE_NUMBER = 3
-WAIT_TO_CONNECT = 3
+WAIT_TO_CONNECT = 2
 SYS_COM = "topicSystemCom"
 DRONE_COM = "topicDroneCom22"
 CONTROL_COM = "topicControlCom"
@@ -26,3 +26,6 @@ NOT_SEND_INIT = 0
 
 CONNECT_SUCCESS = 1
 CONNECT_FAILED = 0
+
+ON  = 1 
+OFF = 0

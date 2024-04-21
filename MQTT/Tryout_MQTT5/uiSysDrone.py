@@ -8,18 +8,18 @@ from PyQt5 import QtCore, QtGui
 from datetime import datetime
 import time
 from SymbolicName import *
-
+from queue import Queue
         
-try:
-    #Generate file ui python from file.ui
-    dirPath = os.path.abspath('uiSystemDroneNew.py')
-    pathFileUi = os.path.dirname(dirPath)
-    os.remove(pathFileUi+"/uiSystemDroneNew.py")
-except:
-    pass
-subprocess.run("python -m PyQt5.uic.pyuic systemControlDrone.ui -o uiSystemDroneNew.py", shell=True)
+# try:
+#     #Generate file ui python from file.ui
+#     dirPath = os.path.abspath('uiSystemDrone.py')
+#     pathFileUi = os.path.dirname(dirPath)
+#     os.remove(pathFileUi+"/uiSystemDrone.py")
+# except:
+#     pass
+# subprocess.run("python -m PyQt5.uic.pyuic systemControlDrone.ui -o uiSystemDrone.py", shell=True)
 
-from uiSystemDroneNew import Ui_MainWindow
+from uiSystemDrone import Ui_MainWindow
 
 # class MasterHandeler(QThread):
 #     handleLasWil      = pyqtSignal(object)
@@ -39,18 +39,31 @@ class MasterInit(QThread):
     updateButton      = pyqtSignal()
     updateConsoleLog  = pyqtSignal(str,str)
     checkConnectDrone = pyqtSignal(int)
-    def __init__(self,func,master):
+    updateDroneSts    = pyqtSignal()
+    def __init__(self,func,master,nbrDrone):
         super().__init__()
         self.func = func
         self.masterPC = master
+        self.nbrDrone = nbrDrone
+        self.log = Queue()
         print("[DEBUG] Threading init master")
     def run(self):
         self.func()
-        while not self.masterPC.log.empty():
-            log = self.masterPC.log.get()
-            self.updateConsoleLog.emit("INFO",log,)
+        self.log.put(self.masterPC.masterRecvLW.log.get())
+        self.log.put(self.masterPC.Master.log.get())
+        self.updateButton.emit()
         while True:
-            self.checkConnectDrone.emit(2)
+            while not (self.log.empty()):
+                log = self.log.get()
+                self.updateConsoleLog.emit("INFO",log)
+            self.checkConnectDrone.emit(self.nbrDrone)
+            
+            if self.masterPC.connectStatus != None:
+                print("[DEBUG] update drone status")
+                self.updateDroneSts.emit()
+                time.sleep(1)
+                self.masterPC.connectStatus = None
+            time.sleep(0.1) 
 
             
 
@@ -62,7 +75,6 @@ class MyWindow(QMainWindow):
         # Initialize the UI class
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-
         # set the title
         self.setWindowTitle("Swarm Drone")
         # set icon for application 
@@ -76,6 +88,7 @@ class MyWindow(QMainWindow):
 
         # Initialize list to store drone labels
         self.drone_labels = []   
+        self.sizeImage = 100
 
         self.commandList = ["Choose the command","Arm","Takeoff","Land"]       
         self.ui.commandComboBox.addItems(self.commandList)
@@ -87,62 +100,49 @@ class MyWindow(QMainWindow):
         self.ui.typeControlComboBox.addItems(self.typeList)
         self.ui.typeControlComboBox.activated.connect(self.enableSelectDrone)
         self.ui.startMaster.clicked.connect(self.runMaster)
+        self.ui.stopMaster.clicked.connect(self.stopMaster)
+        self.run = 0 
         
 
     def runMaster(self):
+        self.run = 1
         from Sender import Master 
         self.master = Master()
         if not self.ui.nrbOfDroneLineEdit.text():
             self.printLog("WARNING","Please enter the number of drones!")
             QMessageBox.warning(self, "Warning", "Please enter the number of drones!")          
             return
-        else:      
-            self.masterInit = MasterInit(self.master.masterConnectBroker,self.master)
+        else:
+            self.num_drones = int(self.ui.nrbOfDroneLineEdit.text())
+            self.masterInit = MasterInit(self.master.masterConnectBroker,self.master,self.num_drones)
             self.masterInit.start()
             self.masterInit.updateConsoleLog.connect(self.printLog)
             self.masterInit.updateButton.connect(self.updateBntStartMaster)
             self.masterInit.checkConnectDrone.connect(self.master.masterCheckConnect)
-            time.sleep(4)
-            self.masterInit.updateButton.emit()
-            self.num_drones = int(self.ui.nrbOfDroneLineEdit.text())
-            # while not self.master.stsConnectBroker == -1:
-            #     self.masterInit.updateButton.emit()
-            #     break
+            self.masterInit.updateDroneSts.connect(self.showDroneConnect)
 
-            
-            # if  self.master.masterRecvLW.log == "Success":
-            #     self.masterInit.updateConsoleLog.emit("INFO","Connected to MQTT Broker!","Master")
-            
-            
-            # try:
-            #     self.printLog("DEBUG","Out thread ")
-            #     # Get the number of drones from the line edit
-            #     self.num_drones = int(self.ui.nrbOfDroneLineEdit.text())
-            # except:
-            #     print("[ERORR] Incorrect type.Please input an integer number")
-            #     return
-            # self.master.masterCheckConnect(self.num_drones)
+            print("[DEBUG] Pass out the threading")
 
-            # self.worker = MasterHandeler(self.master.MasterReceiveLW)
-            # self.worker.handleLasWil.connect(self.master.handleLW)
-            # self.worker.sendCmd.connect(self.master.masterSendCommand)
-            # # self.worker.updateDroneStatus.connect(self.updateWaitTable)
-            # self.worker.updateConsoleLog.connect(self.printLog)
-            # self.worker.start()
-
+    def stopMaster(self):
+        self.printLog("INFO","Master was disconnected with broker")
+        self.ui.startMaster.setStyleSheet("color: black;")
+        self.master.masterStopConnect()
+        self.masterInit.quit()
+        self.masterInit.wait()
 
     def enableSelectDrone(self):
         selected_type = self.ui.typeControlComboBox.currentText()
         if selected_type == "One Drone":
-            self.ui.label_6.setEnabled(True)
+            self.ui.Drone.setEnabled(True)
             self.ui.droneNrmControlLineEdit.setEnabled(True)
         else:
-            self.ui.label_6.setEnabled(False)
-            self.ui.droneNrmControlLineEdit.setEnabled(False)
+            self.ui.Drone.setEnabled(False)
+    
     def updateDroneStatus(self):
         checkSize    = False
-        asymmetrical = False
-        # Clear existing labels
+        # asymmetrical = False
+
+        # Clear existing images drone
         for label in self.drone_labels:
             label.deleteLater()
             self.drone_labels = []
@@ -153,17 +153,24 @@ class MyWindow(QMainWindow):
             print("[ERORR] Incorrect type.Please input an integer number")
         
 
-        
+        #Get the path of image drone
         pathDroneImage = os.path.join(self.dirname, 'Images/drone_black.png')
-        self.droneImage = QtGui.QPixmap(pathDroneImage)
+        self.droneImageOff = QtGui.QPixmap(pathDroneImage)
+
+        #Origin size of image
         size = 100
+
         # Get geometry of droneStatusGroupBox
         grpBoxDroneSts = self.ui.droneStatusGroupBox.geometry()
         widthGrpBox = grpBoxDroneSts.width()
         heightGrpBox = grpBoxDroneSts.height()
 
         rColCouple = []
-        posList = []
+
+        #List contain the position of drone images in group box
+        self.posList = []
+
+        #Get the row , col and the remainder of drone compare with col 
         for i in range(1,self.num_drones+ 1):
             integer =   self.num_drones // i
             remainder =  self.num_drones % i
@@ -177,9 +184,12 @@ class MyWindow(QMainWindow):
         if rowAddDrone != 0 :
             maxRow = rColCouple[-1][-3]
             maxCol = rColCouple[-1][-2] + 1
+
             while checkSize == False:
+            #if sum of width and height of all images bigger of the width and height of group box will reduce the size of images 20%
                 if ((maxCol * (size+ size)) > widthGrpBox) or ((maxRow * (size+ size//2)) > heightGrpBox):
                     size = int(size - size *0.2)
+                    self.sizeImage = size
                 else:
                     checkSize = True
             paddingWidth = (widthGrpBox -(maxCol * (size+ size))) //2
@@ -193,6 +203,7 @@ class MyWindow(QMainWindow):
             posX_Width0 = paddingWidth0 + size/2
             posY_Height0 = paddingHeight0 + size/4
 
+            #Calculate the position of image in the situation asymmetrical
             for row in range(maxRow):
                 if row >= (maxRow - rowAddDrone):
                     actualCol = maxCol
@@ -206,13 +217,14 @@ class MyWindow(QMainWindow):
                 for col in range(actualCol):
                     x = posX + col* int( size + size)
                     y = posY + row* int( size + size/2)
-                    posList.append([x,y])
+                    self.posList.append([x,y])
         else:
             maxRow = rColCouple[-1][-3]
             maxCol = rColCouple[-1][-2] 
             while checkSize == False:
                 if ((maxCol * (size+ size)) > widthGrpBox) or ((maxRow * (size+ size//2)) > heightGrpBox):
                     size = size - size *0.2
+                    self.sizeImage = size
                 else:
                     checkSize = True
                 paddingWidth = (widthGrpBox -(maxCol * (size+ size))) /2
@@ -223,23 +235,54 @@ class MyWindow(QMainWindow):
                 for col in range(maxCol):
                     x = posX_Width + col* ( size + size)
                     y = posY_Height + row* ( size + size/2)
-                    posList.append([x,y])
+                    self.posList.append([x,y])
         
-        self.scaled_pixmap = self.droneImage.scaled(size, size)
+        self.scaled_pixmap = self.droneImageOff.scaled(size, size)
         print("[DEBUG] Size= ",size)
         print("[DEBUG] heightGrpBox= ",heightGrpBox)
-        print("[DEBUG] posList= ",posList)
+        print("[DEBUG] posList= ",self.posList)
 
         for nbrDrone in range(self.num_drones):
             label = QLabel(self.ui.droneStatusGroupBox)
-            label.setGeometry(posList[nbrDrone][0], posList[nbrDrone][1], size, size)
+            label.setGeometry(self.posList[nbrDrone][0], self.posList[nbrDrone][1], size, size)
             label.setPixmap(self.scaled_pixmap)
             label.setVisible(True)  # Make label visible
             self.drone_labels.append(label)
+    def resizeEvent(self, event):
+        # Call your function here
+        if self.ui.nrbOfDroneLineEdit.text(): 
+            self.updateDroneStatus()
+            if self.run == 1:
+                self.showDroneConnect()
+            event.accept()
+    def showDroneConnect(self):
+        for label in self.drone_labels:
+            label.deleteLater()
+            self.drone_labels = []
+        for nbrDrone in range(self.num_drones):
+            print("[DEBUG]Drone off:",nbrDrone)
+            label = QLabel(self.ui.droneStatusGroupBox)
+            label.setGeometry(self.posList[nbrDrone][0], self.posList[nbrDrone][1], self.sizeImage, self.sizeImage)
+            label.setPixmap(self.scaled_pixmap)
+            label.setVisible(True)  # Make label visible
+            self.drone_labels.append(label)
+
+        for droneOn in (self.master.droneConnectList):
+            print("[DEBUG]Drone on:",droneOn)
+            # self.drone_labels[droneOn-1].deleteLater()
+            pathDroneImage = os.path.join(self.dirname, 'Images/drone_green.png')
+            self.droneImageOn = QtGui.QPixmap(pathDroneImage)
+            scaled_pixmapOn = self.droneImageOn.scaled(self.sizeImage, self.sizeImage)
+            label = QLabel(self.ui.droneStatusGroupBox)
+            label.setGeometry(self.posList[droneOn-1][0], self.posList[droneOn-1][1], self.sizeImage, self.sizeImage)
+            label.setPixmap(scaled_pixmapOn)
+            label.setVisible(True)
+            self.drone_labels.append(label)
+
     def printLog(self,type,log):
         timeLog = datetime.now()
         time = str(timeLog.hour).zfill(2)+":"+str(timeLog.minute).zfill(
-                    2)+":"+str(timeLog.second).zfill(2)  
+                    2)+":"+str(timeLog.second).zfill(2)
         
         self.ui.statusLog.append("[Timestamp:{}] [{}] {}".format(time,type,log))
     def updateBntStartMaster(self):
@@ -247,6 +290,9 @@ class MyWindow(QMainWindow):
             self.ui.startMaster.setStyleSheet("color: green;")
         elif self.master.stsConnectBroker == CONNECT_FAILED:
             self.ui.startMaster.setStyleSheet("color: red;")
+            # self.master.masterStopConnect()
+            self.masterInit.quit()
+            self.masterInit.wait()
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MyWindow()

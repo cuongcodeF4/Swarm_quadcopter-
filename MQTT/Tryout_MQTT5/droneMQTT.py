@@ -10,6 +10,7 @@ from SymbolicName import *
 import threading
 import ujson
 from uiSysDrone import MyWindow,MasterInit
+from datetime import datetime
 class droneMQTT(object):
     def __init__(self,client_id,broker="mqtt.eclipseprojects.io",port =1883,username="swarmDrone",password="flyIsOkay"):
         # self.uiSysDrone = MyWindow()
@@ -93,7 +94,7 @@ class droneMQTT(object):
         print("[DEBUG] Drone start init...")
         self.Client.loop_start()
         propInit = mqtt_client.Properties(props.PacketTypes.PUBLISH)
-        propInit.UserProperty = [("typeMsg",INITMSG)]
+        propInit.UserProperty =[("typeMsg",INITMSG),("nameDrone",self.client_id)]
         self.Client.publish(topic= topic, payload=ADD_CONNECT, qos=2,retain=False,properties=propInit)
         # self.Client.loop_stop()
 
@@ -110,11 +111,11 @@ class droneInstance():
         self.masterSts   = MASTER_OFFLINE
         self.sendInit = NOT_SEND_INIT
 
-        self.clientRecvMsg = droneMQTT(client_id = self.drone)
+        self.clientRecvMsg = droneMQTT(client_id = "LasWil:" + self.drone)
         thdRevDataFromMaster = threading.Thread(target= self.receive_data, args=(self.clientRecvMsg,DRONE_COM,)) 
         thdRevDataFromMaster.start()
 
-        self.clientInit    = droneMQTT(client_id=self.drone + "Init")
+        self.clientInit    = droneMQTT(client_id="Init:"+self.drone)
         self.clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
         time.sleep(WAIT_TO_CONNECT)
 
