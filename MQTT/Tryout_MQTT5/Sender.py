@@ -81,7 +81,6 @@ class Master(object):
             #Send all command
             self.Master.Client.loop_start()
             self.Master.publishMsg(topic= DRONE_COM, payload= dataSend, prop =custom_properties)   
-        self.handleLW(self.masterRecvLW)
     
     def MasterReceiveLW(self,masterLW:droneMQTT,topic):
         # Initial the Client to receive command 
