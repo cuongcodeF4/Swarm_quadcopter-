@@ -7,7 +7,7 @@ import paho.mqtt.packettypes as packetTypes
 import threading
 from queue import Queue
 from SymbolicName import *
-from uiSysDrone import MyWindow,MasterInit
+from MainUiSysDrone import MyWindow,MasterInit
 from datetime import datetime
 
 lastWillMsg = SYS_INVALID
