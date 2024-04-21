@@ -10,7 +10,7 @@ import time
 from SymbolicName import *
 from queue import Queue
         
-try:
+try: 
     #Generate file ui python from file.ui
     dirPath = os.path.abspath('uiSystemDrone.py')
     pathFileUi = os.path.dirname(dirPath)
@@ -59,12 +59,14 @@ class MasterInit(QThread):
             # Check the number of drone was connected with broker 
             self.checkConnectDrone.emit(self.nbrDrone)
             if not self.masterPC.logMaster.empty():
-                self.log.put(self.masterPC.logMaster.get())
-        
+                self.log.put(self.masterPC.logMaster.get())  
             if self.masterPC.connectStatus != None:
                 print("[DEBUG] update drone status")
                 self.updateDroneSts.emit()
                 self.masterPC.connectStatus = None # hHelp the signal only callback when client connect or disconnect with broker 
+            
+
+        
             time.sleep(0.1) 
 
 class MyWindow(QMainWindow):
@@ -110,21 +112,22 @@ class MyWindow(QMainWindow):
         
 
     def runMaster(self):
-        self.run = 1
-        from Sender import Master 
-        self.master = Master()
         if not self.ui.nrbOfDroneLineEdit.text():
             self.printLog("WARNING","Please enter the number of drones!")
             QMessageBox.warning(self, "Warning", "Please enter the number of drones!")          
             return
         else:
-            self.num_drones = int(self.ui.nrbOfDroneLineEdit.text())
-            self.masterInit = MasterInit(self.master.masterConnectBroker,self.master,self.num_drones)
-            self.masterInit.start()
-            self.masterInit.updateConsoleLog.connect(self.printLog)
-            self.masterInit.updateButton.connect(self.updateBntStartMaster)
-            self.masterInit.checkConnectDrone.connect(self.master.masterCheckConnect)
-            self.masterInit.updateDroneSts.connect(self.showDroneConnect)
+            if self.run == 0:
+                self.run = 1
+                from Sender import Master 
+                self.master = Master()
+                self.num_drones = int(self.ui.nrbOfDroneLineEdit.text())
+                self.masterInit = MasterInit(self.master.masterConnectBroker,self.master,self.num_drones)
+                self.masterInit.start()
+                self.masterInit.updateConsoleLog.connect(self.printLog)
+                self.masterInit.updateButton.connect(self.updateBntStartMaster)
+                self.masterInit.checkConnectDrone.connect(self.master.masterCheckConnect)
+                self.masterInit.updateDroneSts.connect(self.showDroneConnect)
 
     def stopMaster(self):
         self.printLog("INFO","Master was disconnected with broker")
@@ -132,6 +135,7 @@ class MyWindow(QMainWindow):
         self.master.masterStopConnect()
         self.updateDroneStatus()
         self.masterInit.quit()
+        self.run = 0
 
     def enableSelectDrone(self):
         selected_type = self.ui.typeControlComboBox.currentText()
