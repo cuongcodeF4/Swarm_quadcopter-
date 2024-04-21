@@ -33,8 +33,9 @@ data.put(msg)
 
 ########################################################################  UI    ##################################################################
 class Master(object):
-    def __init__(self):
+    def __init__(self,droneNumber):
         super().__init__()
+        self.droneNumber = droneNumber
         self.droneConnected = 0
         self.logMaster = Queue()
         self.stsConnectBroker = None
@@ -58,13 +59,13 @@ class Master(object):
         #     self.log.put(self.Master.log.get()) 
         # self.Master.logger()
         
-    def masterCheckConnect(self,droneNumber):
-            if self.droneConnected < droneNumber:
-                # print("DRONE CONNECT={}".format(self.droneConnected))                
-                custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
-                custom_properties.UserProperty = [("typeMsg",MASTERLSTWIL),("droneConnect",str(self.droneConnected))]
-                self.Master.Client.publish(topic= DRONE_COM, payload= MASTER_ONLINE,qos=2, properties=custom_properties) 
-            self.handleResp()     
+    def masterCheckConnect(self):
+        if self.droneConnected < self.droneNumber:
+            # print("DRONE CONNECT={}".format(self.droneConnected))                
+            custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
+            custom_properties.UserProperty = [("typeMsg",MASTERLSTWIL),("droneConnect",str(self.droneConnected))]
+            self.Master.Client.publish(topic= DRONE_COM, payload= MASTER_ONLINE,qos=2, properties=custom_properties)
+        self.handleResp()
 
     def masterStopConnect(self):
         self.Master.Client.loop_stop()
@@ -72,15 +73,14 @@ class Master(object):
         self.Master.Client.disconnect(reasonCodes.ReasonCodes( packetTypes.PacketTypes.DISCONNECT, "Disconnect", 4))
         self.masterRecvLW.Client.disconnect(reasonCodes.ReasonCodes( packetTypes.PacketTypes.DISCONNECT, "Disconnect", 4))
 
-    def masterSendCommand(self):
-        if not self.data.empty():
-            print("[DEBUG] Master sends message when there are enough connections ")
-            dataSend = self.data.get()
+    def masterSendCommand(self,queueDataSend):
+        if (not queueDataSend.empty()) and (self.droneConnected == self.droneNumber):
+            dataSend = queueDataSend.get()
             custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
             custom_properties.UserProperty = [("typeMsg",CMD)] 
             #Send all command
-            self.Master.Client.loop_start()
-            self.Master.publishMsg(topic= DRONE_COM, payload= dataSend, prop =custom_properties)   
+            self.Master.publishMsg(topic= DRONE_COM, payload= dataSend, prop =custom_properties)          
+            print("[DEBUG] Master sends message") 
     
     def MasterReceiveLW(self,masterLW:droneMQTT,topic):
         # Initial the Client to receive command 
