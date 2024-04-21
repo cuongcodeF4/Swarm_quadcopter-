@@ -10,14 +10,14 @@ import time
 from SymbolicName import *
 from queue import Queue
         
-# try:
-#     #Generate file ui python from file.ui
-#     dirPath = os.path.abspath('uiSystemDrone.py')
-#     pathFileUi = os.path.dirname(dirPath)
-#     os.remove(pathFileUi+"/uiSystemDrone.py")
-# except:
-#     pass
-# subprocess.run("python -m PyQt5.uic.pyuic systemControlDrone.ui -o uiSystemDrone.py", shell=True)
+try:
+    #Generate file ui python from file.ui
+    dirPath = os.path.abspath('uiSystemDrone.py')
+    pathFileUi = os.path.dirname(dirPath)
+    os.remove(pathFileUi+"/uiSystemDrone.py")
+except:
+    pass
+subprocess.run("python -m PyQt5.uic.pyuic systemControlDrone.ui -o uiSystemDrone.py", shell=True)
 
 from uiSystemDrone import Ui_MainWindow
 
@@ -40,7 +40,6 @@ class MasterInit(QThread):
     updateConsoleLog  = pyqtSignal(str,str)
     checkConnectDrone = pyqtSignal(int)
     updateDroneSts    = pyqtSignal()
-    stopMasterVsBroker        = pyqtSignal()
     def __init__(self,func,master,nbrDrone):
         super().__init__()
         self.func = func
@@ -57,13 +56,15 @@ class MasterInit(QThread):
             while not (self.log.empty()):
                 log = self.log.get()
                 self.updateConsoleLog.emit("INFO",log)
+            # Check the number of drone was connected with broker 
             self.checkConnectDrone.emit(self.nbrDrone)
-            
+            if not self.masterPC.logMaster.empty():
+                self.log.put(self.masterPC.logMaster.get())
+        
             if self.masterPC.connectStatus != None:
                 print("[DEBUG] update drone status")
                 self.updateDroneSts.emit()
-                time.sleep(1)
-                self.masterPC.connectStatus = None
+                self.masterPC.connectStatus = None # hHelp the signal only callback when client connect or disconnect with broker 
             time.sleep(0.1) 
 
 class MyWindow(QMainWindow):
@@ -124,10 +125,6 @@ class MyWindow(QMainWindow):
             self.masterInit.updateButton.connect(self.updateBntStartMaster)
             self.masterInit.checkConnectDrone.connect(self.master.masterCheckConnect)
             self.masterInit.updateDroneSts.connect(self.showDroneConnect)
-            # self.masterInit.stopMasterVsBroker.connect(self.stopMasterToBroker)
-            
-
-            print("[DEBUG] Pass out the threading")
 
     def stopMaster(self):
         self.printLog("INFO","Master was disconnected with broker")
@@ -186,7 +183,6 @@ class MyWindow(QMainWindow):
 
         # Check size of row and column . Do have fit with group box
         rowAddDrone  = rColCouple[-1][-1] -  rColCouple[-1][-2]
-        print("[DEBUG] rowAddDrone= ",rowAddDrone)
         if rowAddDrone != 0 :
             maxRow = rColCouple[-1][-3]
             maxCol = rColCouple[-1][-2] + 1
@@ -244,9 +240,6 @@ class MyWindow(QMainWindow):
                     self.posList.append([x,y])
         
         self.scaled_pixmap = self.droneImageOff.scaled(size, size)
-        print("[DEBUG] Size= ",size)
-        print("[DEBUG] heightGrpBox= ",heightGrpBox)
-        print("[DEBUG] posList= ",self.posList)
 
         for nbrDrone in range(self.num_drones):
             label = QLabel(self.ui.droneStatusGroupBox)

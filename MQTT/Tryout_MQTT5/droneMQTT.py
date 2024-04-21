@@ -38,10 +38,11 @@ class droneMQTT(object):
      
         
         def on_publish(client, userdata, mid):
-            pass
+            self.log.put( self.client_id + " published message")
             #print("[INFO]Message published with MID "+str(mid))
-        def on_disconnect( self,userdata, rc, properties):
-            print("Disconnected with MQTT Broker! with rc = ",rc)
+        def on_disconnect( clinet,userdata, rc, properties):
+            self.log.put( self.client_id + " disconnected with Broker and rc = "+ str(rc))
+            print(self.client_id +" disconnected with MQTT Broker! with rc = " + str(rc))
             
         self.Client.username_pw_set(self.username, self.password)
         self.Client.on_connect = on_connect
