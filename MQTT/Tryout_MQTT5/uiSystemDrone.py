@@ -47,7 +47,7 @@ class Ui_MainWindow(object):
         self.label_17.setMinimumSize(QtCore.QSize(150, 150))
         self.label_17.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_17.setText("")
-        self.label_17.setPixmap(QtGui.QPixmap("C:/Users/ADMIN/OneDrive - Unicorn/Download/drone-swarm-128.webp"))
+        #self.label_17.setPixmap(QtGui.QPixmap("C:/Users/ADMIN/OneDrive - Unicorn/Download/drone-swarm-128.webp"))
         self.label_17.setAlignment(QtCore.Qt.AlignCenter)
         self.label_17.setObjectName("label_17")
         self.verticalLayout.addWidget(self.label_17)

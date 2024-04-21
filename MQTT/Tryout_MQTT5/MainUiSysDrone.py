@@ -77,9 +77,14 @@ class MyWindow(QMainWindow):
         self.ui.setupUi(self)
         # set the title
         self.setWindowTitle("Swarm Drone")
+        
+        # set image for side panel 
+        pathIcon = os.path.join(self.dirname, 'Images/drone_swarm.webp')
+        self.ui.label_17.setPixmap(QtGui.QPixmap(pathIcon))
+
         # set icon for application 
         pathIcon = os.path.join(self.dirname, 'Images/icon_drone.png')
-        self.setWindowIcon(QtGui.QIcon(pathIcon))
+        self.setWindowIcon(QtGui.QIcon(pathIcon)) 
 
         # Connect the signal 'textChanged' of QLineEdit to a slot
         self.ui.nrbOfDroneLineEdit.returnPressed.connect(self.updateDroneStatus)
