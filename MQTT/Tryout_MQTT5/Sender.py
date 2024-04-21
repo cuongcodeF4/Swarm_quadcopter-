@@ -36,7 +36,7 @@ class Master(object):
     def __init__(self):
         super().__init__()
         self.droneConnected = 0
-        self.log = Queue()
+        self.logMaster = Queue()
         self.stsConnectBroker = None
         self.droneConnectList = []
         self.connectStatus = None
@@ -98,18 +98,19 @@ class Master(object):
                 self.droneConnected += int(msgLstWil) 
                 self.connectStatus = OFF
                 idDrone = int(properties["nameDrone"].split(":")[1])
-                print("[DEBUG] ID:", idDrone)
                 self.droneConnectList.remove(idDrone)
-                print("[DEBUG] Drone was connected = ", self.droneConnected)
-                print("[DEBUG] {} disconnected. Waiting connect again... ".format(properties['nameDrone']))
+                self.logMaster.put( " Drone was connected =  " + str(self.droneConnected)) 
+                self.logMaster.put( "Drone"+ str(idDrone) + " disconnected. Waiting connect again... ")
+                print("[INFO] Drone was connected = ", self.droneConnected)
+                print("[INFO] {} disconnected. Waiting connect again... ".format(properties['nameDrone']))
             elif properties['typeMsg'] == INITMSG:             
                 print("[Execute] Handle init message")
                 msgInit= message.payload.decode()
                 self.droneConnected += int(msgInit) 
                 idDrone =  int(properties["nameDrone"].split(":")[1])
                 self.connectStatus = ON
-                print("[DEBUG] ID:", idDrone)
                 self.droneConnectList.append(idDrone)
+                self.logMaster.put( "Drone"+ str(idDrone) + " connected.")
                 print("[DEBUG] Drone was connected = ", self.droneConnected)
 
 # def MasterReceiveLW(masterLW:droneMQTT,topic):
