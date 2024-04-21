@@ -3,6 +3,7 @@ from enum import Enum
 import time
 import ujson
 import paho.mqtt.properties as props
+import paho.mqtt.reasoncodes as reasonCodes
 import paho.mqtt.packettypes as packetTypes
 import threading
 from queue import Queue
@@ -68,8 +69,8 @@ class Master(object):
     def masterStopConnect(self):
         self.Master.Client.loop_stop()
         self.masterRecvLW.Client.loop_stop()
-        self.Master.Client.disconnect()
-        self.masterRecvLW.Client.disconnect()
+        self.Master.Client.disconnect(reasonCodes.ReasonCodes( packetTypes.PacketTypes.DISCONNECT, "Disconnect", 4))
+        self.masterRecvLW.Client.disconnect(reasonCodes.ReasonCodes( packetTypes.PacketTypes.DISCONNECT, "Disconnect", 4))
 
     def masterSendCommand(self):
         if not self.data.empty():
@@ -160,12 +161,14 @@ class Master(object):
 #             Master.Client.publish(topic= DRONE_COM, payload= MASTER_ONLINE,qos=2, properties=custom_properties)  
 #             time.sleep(0.1) 
 #         elif not data.empty():
-#             print("[DEBUG] Master sends message when there are enough connections ")
-#             dataSend = data.get()
-#             custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
-#             custom_properties.UserProperty = [("typeMsg",CMD)]  
-#             #Send all command
-#             Master.Client.loop_start()
-#             Master.publishMsg(topic= DRONE_COM, payload= dataSend, prop =custom_properties)   
+#             Master.Client.disconnect(reasonCodes.ReasonCodes( packetTypes.PacketTypes.DISCONNECT, "Disconnect", 4))
+           
+#             # print("[DEBUG] Master sends message when there are enough connections ")
+#             # dataSend = data.get()
+#             # custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
+#             # custom_properties.UserProperty = [("typeMsg",CMD)]  
+#             # #Send all command
+#             # Master.Client.loop_start()
+#             # Master.publishMsg(topic= DRONE_COM, payload= dataSend, prop =custom_properties)   
 #         handleLW(masterRecvLW)
 

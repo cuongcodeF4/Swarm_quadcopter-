@@ -40,6 +40,7 @@ class MasterInit(QThread):
     updateConsoleLog  = pyqtSignal(str,str)
     checkConnectDrone = pyqtSignal(int)
     updateDroneSts    = pyqtSignal()
+    stopMasterVsBroker        = pyqtSignal()
     def __init__(self,func,master,nbrDrone):
         super().__init__()
         self.func = func
@@ -64,8 +65,6 @@ class MasterInit(QThread):
                 time.sleep(1)
                 self.masterPC.connectStatus = None
             time.sleep(0.1) 
-
-            
 
 class MyWindow(QMainWindow):
     dirname = os.path.dirname(__file__)
@@ -125,6 +124,8 @@ class MyWindow(QMainWindow):
             self.masterInit.updateButton.connect(self.updateBntStartMaster)
             self.masterInit.checkConnectDrone.connect(self.master.masterCheckConnect)
             self.masterInit.updateDroneSts.connect(self.showDroneConnect)
+            # self.masterInit.stopMasterVsBroker.connect(self.stopMasterToBroker)
+            
 
             print("[DEBUG] Pass out the threading")
 
@@ -132,8 +133,8 @@ class MyWindow(QMainWindow):
         self.printLog("INFO","Master was disconnected with broker")
         self.ui.startMaster.setStyleSheet("color: black;")
         self.master.masterStopConnect()
+        self.updateDroneStatus()
         self.masterInit.quit()
-        self.masterInit.wait()
 
     def enableSelectDrone(self):
         selected_type = self.ui.typeControlComboBox.currentText()
