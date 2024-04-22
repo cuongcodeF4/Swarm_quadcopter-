@@ -9,13 +9,12 @@ from queue import Queue
 from SymbolicName import *
 import threading
 import ujson
-from uiSysDrone import MyWindow,MasterInit
 from datetime import datetime
 import pymavlinkFunction
 
+
 class droneMQTT(object):
     def __init__(self,client_id,broker="mqtt.eclipseprojects.io",port =1883,username="swarmDrone",password="flyIsOkay"):
-        # self.uiSysDrone = MyWindow()
         self.client_id = client_id
         self.broker = broker
         self.port = port
@@ -40,10 +39,11 @@ class droneMQTT(object):
      
         
         def on_publish(client, userdata, mid):
-            pass
+            self.log.put( self.client_id + " published message")
             #print("[INFO]Message published with MID "+str(mid))
-        def on_disconnect( self,userdata, rc, properties):
-            print("Disconnected with MQTT Broker! with rc = ",rc)
+        def on_disconnect( clinet,userdata, rc, properties):
+            self.log.put( self.client_id + " disconnected with Broker and rc = "+ str(rc))
+            print(self.client_id +" disconnected with MQTT Broker! with rc = " + str(rc))
             
         self.Client.username_pw_set(self.username, self.password)
         self.Client.on_connect = on_connect
@@ -244,19 +244,3 @@ class function():
         pass
     def report(self):
         pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
