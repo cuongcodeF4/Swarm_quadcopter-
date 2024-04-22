@@ -1,37 +1,19 @@
 import time
 import json
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5 import QtCore, QtGui
 from paho.mqtt import client as mqtt_client
 from paho.mqtt import packettypes as props
 from queue import Queue
 from SymbolicName import *
 import threading
-import pymavlinkFunction
-
 import ujson
-
-IS_IN_CONTROLLED = False 
-
-WAIT_TO_CONNECT = 1
-MAX_TRIAL = 3
-
-"""
-system frame:
-trong hàm main của drone thì drone sẽ cần một hàm nhận lệnh từ hai kênh 
-init sẵn hai đối tượng của hai topic sysCom và conCom
-Tạo hàm excute sub vào kênh đọc topic và cmd, sau đó quét phần topic và cmd để biết được phải chạy lệnh nào 
-function.excute() -  có bao gồm sub và lưu topic, cmd cũng như scan chỉ định lệnh
-
-Viết các hàm cho hai đối tượng sysCom và conCom
-hai đối tượng này sẽ là nơi mà các lệnh pymavlink được áp dungj
-có thể kéo các hàm pymalink qua bên này cho gọn, hoặc để riêng cho dễ debug ( nếu trong các hàm yêu cầu phải chạy nhiều algo và func)
-
-Hàm report 
-chỉ dùng cho việc gửi data vào kênh droneFB
-áp dụng tương tự với trình tự thực hiện hàm excute.
-"""
-
+from uiSysDrone import MyWindow,MasterInit
+from datetime import datetime
 class droneMQTT(object):
     def __init__(self,client_id,broker="mqtt.eclipseprojects.io",port =1883,username="swarmDrone",password="flyIsOkay"):
+        # self.uiSysDrone = MyWindow()
         self.client_id = client_id
         self.broker = broker
         self.port = port
@@ -40,15 +22,21 @@ class droneMQTT(object):
         self.payload = None
         self.Client = mqtt_client.Client(self.client_id,protocol=5)  # Use the MQTT version 5
         self.queueData  = Queue()
-
+        self.log = Queue()
+        self.status = CONNECT_FAILED
     def connectBroker(self,prop=None,typeClient=TYPE_CLIENT_NORMAL):
+        
         """Connect a client to the broker.
         prop: (MQTT v5.0 only) a Properties instance setting the MQTT v5.0 properties
         to be included. Optional - if not set, no properties are sent.
         """
         def on_connect(client, userdata, flags, reasonCode, properties):
+            self.status = CONNECT_SUCCESS
+            self.log.put( self.client_id + " connected to MQTT Broker: " +str(reasonCode))
             print("[INFO]Connected to MQTT Broker!")
-            print("[INFO]Status",reasonCode )
+            print("[INFO]Status",str(reasonCode) )
+     
+        
         def on_publish(client, userdata, mid):
             pass
             #print("[INFO]Message published with MID "+str(mid))
@@ -106,7 +94,7 @@ class droneMQTT(object):
         print("[DEBUG] Drone start init...")
         self.Client.loop_start()
         propInit = mqtt_client.Properties(props.PacketTypes.PUBLISH)
-        propInit.UserProperty = [("typeMsg",INITMSG)]
+        propInit.UserProperty =[("typeMsg",INITMSG),("nameDrone",self.client_id)]
         self.Client.publish(topic= topic, payload=ADD_CONNECT, qos=2,retain=False,properties=propInit)
         # self.Client.loop_stop()
 
@@ -123,11 +111,11 @@ class droneInstance():
         self.masterSts   = MASTER_OFFLINE
         self.sendInit = NOT_SEND_INIT
 
-        self.clientRecvMsg = droneMQTT(client_id = self.drone)
+        self.clientRecvMsg = droneMQTT(client_id = "LasWil:" + self.drone)
         thdRevDataFromMaster = threading.Thread(target= self.receive_data, args=(self.clientRecvMsg,DRONE_COM,)) 
         thdRevDataFromMaster.start()
 
-        self.clientInit    = droneMQTT(client_id=self.drone + "Init")
+        self.clientInit    = droneMQTT(client_id="Init:"+self.drone)
         self.clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
         time.sleep(WAIT_TO_CONNECT)
 
@@ -147,8 +135,11 @@ class droneInstance():
                 msg_recv= message.payload.decode()
                 msg_recv_dict = ujson.loads(msg_recv)
                 msg_recv = msg_recv_dict[self.drone]
+                #save this for later use 
                 print(f"Received `{msg_recv}`")
                 if self.droneConnected == DRONE_NUMBER:
+                    #this is where you take in and handle the CMD message that was sent from the master.
+                    #the drone Num check was to make sure that all the drone are in connect
                     print("[DEBUG] Send data to pymavlink")
             elif properties['typeMsg'] == MASTERLSTWIL: 
                 print("[DEBUG] Master online",end="\r")
