@@ -18,6 +18,8 @@ import time
 
 #main class
 class MAV():
+    #contain only the fucntion to run all the pymavlink msg needed
+    #no computational involve and only take in basic data 
     def __init__(self):
         #set up the connection when the class being create 
         self.drone  = mavutil.mavlink_connection('udp:172.30.144.1:14550')
@@ -170,7 +172,7 @@ class MAV():
                 if msg:
                     #get only the needed data for the need of using
                     output_msg = {
-                        "SEN_HEALTH" : msg.onboard_control_sensors_health
+                        "SENSOR_HEALTH" : msg.onboard_control_sensors_health
                     }    
                     print("Sensor health receive successfully!")
                     break
@@ -179,5 +181,18 @@ class MAV():
                     break
         return output_msg
     #func two
+class HANDLER():
+    #run the msg scan and excute the right function when in need
+    def __init__(self):
+        self.MSG = dict
+        pass
+    #scan the msg to run  all the MAV function
+    def msgScan(self):
+        pass
 
+    #main code running and processing 
+    def deCode(self):
+        self.msgScan()
+        pass
+    pass
 
