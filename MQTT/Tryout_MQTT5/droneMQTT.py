@@ -11,6 +11,8 @@ import threading
 import ujson
 from uiSysDrone import MyWindow,MasterInit
 from datetime import datetime
+import pymavlinkFunction
+
 class droneMQTT(object):
     def __init__(self,client_id,broker="mqtt.eclipseprojects.io",port =1883,username="swarmDrone",password="flyIsOkay"):
         # self.uiSysDrone = MyWindow()
