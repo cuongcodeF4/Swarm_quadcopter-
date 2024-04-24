@@ -9,7 +9,7 @@ import time
 #exg: MAV.takeoff(10)
 
 #data type input {'sysCom': '"command","value"', 'droneCom': '"command","value"'}
-#but the exacts data we receive is on ly thhe afer mesg 
+#but the exacts data we receive is only the afer mesg 
 
 #so that we need to build a class that have all the control algorithm
 #when init the class, an mavlink object gonna be create and can be use to 
@@ -185,13 +185,17 @@ class HANDLER():
     #run the msg scan and excute the right function when in need
     def __init__(self):
         self.MSG = dict
+        #create an fucntion object for later use 
+        self.MAVfunction = MAV()
         pass
     #scan the msg to run  all the MAV function
     def msgScan(self):
+
         pass
 
     #main code running and processing 
-    def deCode(self):
+    def deCode(self, datdaDict):
+        datdaDict = 1
         self.msgScan()
         pass
     pass

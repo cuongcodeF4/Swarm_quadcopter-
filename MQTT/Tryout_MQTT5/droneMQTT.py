@@ -112,9 +112,10 @@ class droneInstance():
         self.droneConnected = 0
         self.masterSts   = MASTER_OFFLINE
         self.sendInit = NOT_SEND_INIT
+        self.function = function()
 
         self.clientRecvMsg = droneMQTT(client_id = "LasWil:" + self.drone)
-        thdRevDataFromMaster = threading.Thread(target= self.receive_data, args=(self.clientRecvMsg,DRONE_COM,)) 
+        thdRevDataFromMaster = threading.Thread(target= self.receive_data, args=(self.clientRecvMsg,DRONE_COM)) 
         thdRevDataFromMaster.start()
 
         self.clientInit    = droneMQTT(client_id="Init:"+self.drone)
@@ -137,11 +138,20 @@ class droneInstance():
                 msg_recv= message.payload.decode()
                 msg_recv_dict = ujson.loads(msg_recv)
                 msg_recv = msg_recv_dict[self.drone]
-                #save this for later use 
+                #save this for later use
+                #the usage for now is not know but we can use it later
                 print(f"Received `{msg_recv}`")
                 if self.droneConnected == DRONE_NUMBER:
-                    #this is where you take in and handle the CMD message that was sent from the master.
-                    #the drone Num check was to make sure that all the drone are in connect
+                    '''
+                    msg_recv = {
+                        "TYPE" : "data", 
+                        "CMD" : "data",
+                        "VALUE1" : "data", 
+                        "VALUE2" : "data", 
+                        "VALUE3" : "data"
+                    }
+                    '''
+                    self.function.execute(msg_recv)
                     print("[DEBUG] Send data to pymavlink")
             elif properties['typeMsg'] == MASTERLSTWIL: 
                 print("[DEBUG] Master online",end="\r")
@@ -170,77 +180,83 @@ class droneInstance():
         self.Client.on_log = on_log
 
 class sysCom ():
+    #data transfer to the master will retain as dict form 
     def __init__(self):
         self.MQTT = droneMQTT()
-        #init client ID for later use
-        self.topic = "droneFB"
         self.mavlink = pymavlinkFunction.MAV()
+        self.outputData = None
     def comCheckUp(self):
         #send ACK bit to the drone master
         ACKbit = "ACK" + self.MQTT.client_id
-        # Initial publishing to the droneFB topic
-        #only true if the code run only once
-        self.MQTT.connectBroker()
-        time.sleep(WAIT_TO_CONNECT)
-        self.MQTT.publishMsg(self.topic,ACKbit,prop=None)
-        self.MQTT.Client.loop_forever()
+        self.outputData = ACKbit
     def posReport(self):
         trial = 0
-        while not outputData and trial <= MAX_TRIAL:
+        while not self.outputData and trial <= MAX_TRIAL:
             #get the needed pos coordinate of the droene it self
-            outputData = self.mavlink.getValue("GPS")
-            outputData.update(self.mavlink.getValue("ALT"))
-            #pub the data onto the droneFB with it own clientID contain in it
-            #let just say that the clientID already be embedded in the msg it self
+            self.outputData = self.mavlink.getValue("GPS")
+            self.outputData.update(self.mavlink.getValue("ALT"))
             trial += 1
-            if outputData:
-                #after having the data send it to the master to show it on the UI for the user to access.
-                self.MQTT.connectBroker()
-                time.sleep(WAIT_TO_CONNECT)
-                self.MQTT.publishMsg(self.topic,outputData,prop=None)
-                self.MQTT.Client.loop_forever()
-                break
     def sysReport(self,valueType):
         trial = 0
         #scan for all the needed value to see what system value the user wanna get
-        while not outputData and trial <= MAX_TRIAL:
+        while not self.outputData and trial <= MAX_TRIAL:
             if valueType == "BAT":
-                outputData = self.mavlink.getValue("BAT")
-            elif valueType == None:
-                pass
-            elif valueType == None:
-                pass
+                self.outputData = self.mavlink.getValue("BAT")
+            elif valueType == "SEN":
+                self.outputData = self.mavlink.getValue("SENSOR_STATE")
             trial += 1
-            if outputData:
-                self.MQTT.connectBroker()
-                time.sleep(WAIT_TO_CONNECT)
-                self.MQTT.publishMsg(self.topic,outputData,prop=None)
-                self.MQTT.Client.loop_forever()
-                break
-    
-    def decode():
-        #scan the msg and excute the right command on the pixhawk
-        pass
+    def handle(self, CMD, value1, value2):
+        if CMD == "comCheckUp":
+            self.comCheckUp()
+        elif CMD == "posReport":
+            self.posReport()
+        elif CMD == "sysReport":
+            self.sysReport(value1)
+        self.MQTT.connectBroker()
+        time.sleep(WAIT_TO_CONNECT)
+        self.MQTT.publishMsg(self.topic,self.outputData,prop=None)
+        self.MQTT.Client.loop_forever()
 
 class conCom ():
     def __init__(self, topic, msg):
         self.MQTT = droneMQTT()
         self.mavlink = pymavlinkFunction.MAV()
-    def arm(self, state):
-        self.mavlink.arm(state=1)
-    def decode():
-        #scan the msg and excute the right command on the pixhawk
+    def unitSelect(self):
+        #init this func only if the drone is chose to be controlled
         pass
+    def handle(self, CMD, VALUE1, VALUE2):
+        if CMD == "ARM":
+            self.mavlink.arm(1)
+        elif CMD == "TAKE_OFF":
+            self.mavlink.takeoff(VALUE1)
+
 
 class function():
-    def __init__(self, topic, cmd):
-        MQTT = droneMQTT()
-        systemCommand = sysCom()
-        controlCommand = conCom()
-        self.topic = topic
-        self.cmd = cmd
-        pass
-    def excute(self):
-        pass
+    #work flow, you init the MQTT and let the master send down its CMD
+    # then pass that CMD as the args fot the function.execute(data)
+    # data format
+    '''
+    msg_recv = {
+        "TYPE" : "data", 
+        "CMD" : "data",
+        "VALUE1" : "data", 
+        "VALUE2" : "data", 
+        "VALUE3" : "data"
+    }
+    '''
+    def __init__(self):
+        self.MQTT = droneMQTT()
+        self.systemCommand = sysCom()
+        self.controlCommand = conCom()
+
+    def execute(self,data):
+        if data['TYPE'] == "SYS_COM":
+            dataExecuteThread = threading.Thread(target=self.systemCommand.handle(), args=(data['CMD'], data['VALUE1'], data['VALUE2']))
+            dataExecuteThread.start()
+        #else the TYPE is the other type
+        else:
+            dataExecuteThread = threading.Thread(target=self.controlCommand.handle(), args=(data['CMD'], data['VALUE1'], data['VALUE2']))
+            dataExecuteThread.start()
+
     def report(self):
         pass
