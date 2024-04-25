@@ -179,8 +179,8 @@ class droneInstance():
             print(f"[INFO]Log level{level}: {buf}")
         self.Client.on_log = on_log
 
-class sysCom ():
-    #data transfer to the master will retain as dict form 
+class Command ():
+    #########data transfer to the master will retain as dict form ############
     def __init__(self):
         self.MQTT = droneMQTT()
         self.mavlink = pymavlinkFunction.MAV()
@@ -205,36 +205,37 @@ class sysCom ():
             elif valueType == "SEN":
                 self.outputData = self.mavlink.getValue("SENSOR_STATE")
             trial += 1
-    def handle(self, CMD, value1, value2):
+    ############ CONTROL COMMAND ############
+    def unitSelect(self):
+        #init this fu
+        # nc only if the drone is chose to be controlled
+        pass
+    
+    ############ handling function ############
+    def handle(self, CMD, VALUE1, VALUE2):
+        ############# SYSTEM COMMAND ############
         if CMD == "comCheckUp":
             self.comCheckUp()
         elif CMD == "posReport":
             self.posReport()
         elif CMD == "sysReport":
-            self.sysReport(value1)
-        self.MQTT.connectBroker()
-        time.sleep(WAIT_TO_CONNECT)
-        self.MQTT.publishMsg(self.topic,self.outputData,prop=None)
-        self.MQTT.Client.loop_forever()
-
-class conCom ():
-    def __init__(self, topic, msg):
-        self.MQTT = droneMQTT()
-        self.mavlink = pymavlinkFunction.MAV()
-    def unitSelect(self):
-        #init this func only if the drone is chose to be controlled
-        pass
-    def handle(self, CMD, VALUE1, VALUE2):
+            self.sysReport(VALUE1)
+        ############# CONTROL COMMAND ############
         if CMD == "ARM":
             self.mavlink.arm(1)
         elif CMD == "TAKE_OFF":
             self.mavlink.takeoff(VALUE1)
+        #scan to see if the return feedback data is needed or not
+        if self.outputData:
+            self.MQTT.connectBroker()
+            time.sleep(WAIT_TO_CONNECT)
+            self.MQTT.publishMsg(self.topic,self.outputData,prop=None)
+            self.MQTT.Client.loop_forever()
 
 
+############ Function ############
 class function():
-    #work flow, you init the MQTT and let the master send down its CMD
-    # then pass that CMD as the args fot the function.execute(data)
-    # data format
+    #data format
     '''
     msg_recv = {
         "TYPE" : "data", 
@@ -246,17 +247,11 @@ class function():
     '''
     def __init__(self):
         self.MQTT = droneMQTT()
-        self.systemCommand = sysCom()
-        self.controlCommand = conCom()
+        self.Command = Command()
 
     def execute(self,data):
-        if data['TYPE'] == "SYS_COM":
-            dataExecuteThread = threading.Thread(target=self.systemCommand.handle(), args=(data['CMD'], data['VALUE1'], data['VALUE2']))
-            dataExecuteThread.start()
-        #else the TYPE is the other type
-        else:
-            dataExecuteThread = threading.Thread(target=self.controlCommand.handle(), args=(data['CMD'], data['VALUE1'], data['VALUE2']))
-            dataExecuteThread.start()
-
+        #start the thread and run the need code
+        dataExecuteThread = threading.Thread(target=self.Command.handle(), args=(data['CMD'], data['VALUE1'], data['VALUE2']))
+        dataExecuteThread.start()
     def report(self):
         pass
