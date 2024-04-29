@@ -13,7 +13,7 @@ import time
 #so that we need to build a class that have all the control algorithm
 #when init the class, an mavlink object gonna be create and can be use to 
 
-
+timeout = 2
 
 #main class
 class MAV():
@@ -179,7 +179,7 @@ class MAV():
         # ALT func 
         if "ALT"  == param:
             while True:
-                timeout  = time.time() + 2
+                # timeout  = time.time() + 2
                 #continouslt listen dor messages with a 2 - second timeout 
                 msg = self.drone.recv_match(type='ALTITUDE', blocking=True, timeout  = timeout)
                 if msg:
@@ -197,7 +197,7 @@ class MAV():
             #Scan the data stream and search for GPS coordinate
             while True:
                 #get the abs timeout time by using real time in the instant of the code occur
-                timeout = time.time() + 2
+                # timeout = time.time() + 2
                 # Continuously listen for messages with a 2-second timeout
                 msg = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = timeout)
                 if msg:
@@ -214,7 +214,7 @@ class MAV():
         # Battery check up func
         if "BAT" == param :
             while True:
-                timeout  = time.time() + 2
+                # timeout  = time.time() + 2
                 #continouslt listen dor messages with a 2 - second timeout 
                 msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout  = timeout)
                 if msg:
@@ -228,7 +228,7 @@ class MAV():
                     break
         if "SENSOR_STATE" == param:
             while True:
-                timeout  = time.time() + 2
+                # timeout  = time.time() + 2
                 #continouslt listen dor messages with a 2 - second timeout 
                 msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout  = timeout)
                 if msg:
