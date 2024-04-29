@@ -284,7 +284,7 @@ def create_active_csv(shape_name,diameter, direction, maneuver_time, start_x, st
 
 
 # Example usage
-shape_name="square"
+shape_name="circle"
 diameter = 30.0
 direction = 1
 maneuver_time = 60.0
