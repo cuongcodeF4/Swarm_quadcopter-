@@ -133,20 +133,15 @@ class MAV():
                 # Continuously listen for messages with a 2-second timeout
                 msg = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = timeout)
                 if msg:
-                    # Process the received GPS data if there is data in the parameter 
-                    #DO SOME THINGS
                     #Scan the data and take only lat lon and alt data that needed for the position estimation
                     output_msg = {
                         'lon' : msg.lon,
                         'lat' : msg.lat,
                         'MSL_alt' : msg.relative_alt
                     }
-                    #exg:
-                    print("GPS Coordinate receive success!")
-                    #decode func will be written in the MMQTT for least processing in the drone MCU it self
                     break
                 else:
-                    print("Timeout waiting for message. No GPS found!")
+                    output_msg = {'data' : 'NAN'}
                     break  # Exit the loop after timeout
         # Battery check up func
         if "BAT" == param :
@@ -159,10 +154,9 @@ class MAV():
                     output_msg = {
                         "BAT_LV" : msg.battery_remaining
                     }    
-                    print("battery level receive successfully!")
                     break
                 else:
-                    print("Timeout waiting for message. No message found!")
+                    output_msg = {'data' : 'NAN'}
                     break
         if "SENSOR_STATE" == param:
             while True:
@@ -174,29 +168,10 @@ class MAV():
                     output_msg = {
                         "SENSOR_HEALTH" : msg.onboard_control_sensors_health
                     }    
-                    print("Sensor health receive successfully!")
                     break
                 else:
-                    print("Timeout waiting for message. No message found!")
+                    output_msg = {'data' : 'NAN'}
                     break
         return output_msg
-    #func two
-class HANDLER():
-    #run the msg scan and excute the right function when in need
-    def __init__(self):
-        self.MSG = dict
-        #create an fucntion object for later use 
-        self.MAVfunction = MAV()
+    def setPara(self):
         pass
-    #scan the msg to run  all the MAV function
-    def msgScan(self):
-
-        pass
-
-    #main code running and processing 
-    def deCode(self, datdaDict):
-        datdaDict = 1
-        self.msgScan()
-        pass
-    pass
-

@@ -142,15 +142,7 @@ class droneInstance():
                 #the usage for now is not know but we can use it later
                 print(f"Received `{msg_recv}`")
                 if self.droneConnected == DRONE_NUMBER:
-                    '''
-                    msg_recv = {
-                        "TYPE" : "data", 
-                        "CMD" : "data",
-                        "VALUE1" : "data", 
-                        "VALUE2" : "data", 
-                        "VALUE3" : "data"
-                    }
-                    '''
+                    #run the command when ready
                     self.function.execute(msg_recv)
                     print("[DEBUG] Send data to pymavlink")
             elif properties['typeMsg'] == MASTERLSTWIL: 
@@ -175,6 +167,8 @@ class droneInstance():
                 if self.masterSts == MASTER_ONLINE:
                     self.droneConnected += int(msgInit) 
                     print("[DEBUG] Drone was connected = ", self.droneConnected)
+            elif properties['typeMsg'] == GPSINFO:
+                pass
         def on_log(client, userdata, level, buf):
             print(f"[INFO]Log level{level}: {buf}")
         self.Client.on_log = on_log
@@ -191,7 +185,7 @@ class Command ():
         self.outputData = ACKbit
     def posReport(self):
         trial = 0
-        while not self.outputData and trial <= MAX_TRIAL:
+        while self.outputData and trial <= MAX_TRIAL:
             #get the needed pos coordinate of the droene it self
             self.outputData = self.mavlink.getValue("GPS")
             self.outputData.update(self.mavlink.getValue("ALT"))
@@ -206,11 +200,19 @@ class Command ():
                 self.outputData = self.mavlink.getValue("SENSOR_STATE")
             trial += 1
     ############ CONTROL COMMAND ############
-    def unitSelect(self):
-        #init this fu
-        # nc only if the drone is chose to be controlled
-        pass
-    
+    def unitSelect(self,client_ID):
+        if client_ID != self.MQTT.client_id:
+            #if yes then set to True to not be run in execute
+            IS_IN_CONTROLLED = True
+        else:
+            #if it was chosen - mean that the client ID is right
+            self.outputData = {
+                'STATE' : 'UNIT SELECTED'
+            }
+        if client_ID == 'EXIT':
+            #if yes then set it back to alow control on it self
+            IS_IN_CONTROLLED = False
+
     ############ handling function ############
     def handle(self, CMD, VALUE1, VALUE2):
         ############# SYSTEM COMMAND ############
@@ -225,6 +227,8 @@ class Command ():
             self.mavlink.arm(1)
         elif CMD == "TAKE_OFF":
             self.mavlink.takeoff(VALUE1)
+        elif CMD == "unitSelect":
+            pass
         #scan to see if the return feedback data is needed or not
         if self.outputData:
             self.MQTT.connectBroker()
@@ -238,7 +242,6 @@ class function():
     #data format
     '''
     msg_recv = {
-        "TYPE" : "data", 
         "CMD" : "data",
         "VALUE1" : "data", 
         "VALUE2" : "data", 
@@ -251,7 +254,8 @@ class function():
 
     def execute(self,data):
         #start the thread and run the need code
-        dataExecuteThread = threading.Thread(target=self.Command.handle(), args=(data['CMD'], data['VALUE1'], data['VALUE2']))
-        dataExecuteThread.start()
+        if not IS_IN_CONTROLLED:
+            dataExecuteThread = threading.Thread(target=self.Command.handle(), args=(data['CMD'], data['VALUE1'], data['VALUE2']))
+            dataExecuteThread.start()
     def report(self):
         pass

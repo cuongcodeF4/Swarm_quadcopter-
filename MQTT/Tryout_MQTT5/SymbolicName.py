@@ -8,6 +8,7 @@ LSTWILLMSG = "LastWillMessageType"
 INITMSG = "InitMessageType"
 CMD        = "CommandType"
 MASTERLSTWIL = "MasterLastWillMessageType"
+GPSINFO = "GPS info for auto avoidance using GPS"
 
 ADD_CONNECT = 1
 SUB_CONNECT =-1 
@@ -30,5 +31,5 @@ CONNECT_FAILED = 0
 ON  = 1 
 OFF = 0
 
-IS_IN_CONTROLLED = 0
+IS_IN_CONTROLLED = False
 MAX_TRIAL = 5
