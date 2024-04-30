@@ -219,7 +219,7 @@ class Command ():
     def handle(self, DATA):
         if DATA["TYPE"] == ALL:
             #get the data
-            self.HANDLE_DATA = DATA["ALL_CMD"]
+            self.HANDLE_DATA = DATA["ALL_CMD"] #this become a dictionary
             ############# SYSTEM COMMAND ############
             if self.HANDLE_DATA["CMD"] == "COMMUNICATION_CHECKUP":
                 self.comCheckUp()
@@ -239,6 +239,7 @@ class Command ():
                 self.MQTT.publishMsg(self.topic,self.outputData,prop=DRONE_COM)
                 self.MQTT.Client.loop_forever()
         if DATA["TYPE"] == UNIT:
+            #scan to make sure that the drone is in controlled
             if self.MQTT.client_id in DATA["UNIT_CMD"]["UNIT_ENABLE"]:
                 #get the command for easy use 
                 CMD = DATA["UNIT_CMD"]["CMD"]
@@ -314,14 +315,16 @@ msg_recv = {
 
 def takeoff():
     if 
-'''
+
+    '''
     def __init__(self):
         self.MQTT = droneMQTT()
         self.Command = Command()
 
     def execute(self,DICT_DATA):
         #start the thread and run the need code
-        dataExecuteThread = threading.Thread(target=self.Command.handle(), args=(DICT_DATA))
-        dataExecuteThread.start()
+        if DICT_DATA:
+            dataExecuteThread = threading.Thread(target=self.Command.handle(), args=(DICT_DATA))
+            dataExecuteThread.start()
     def report(self):
         pass
