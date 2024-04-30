@@ -205,18 +205,7 @@ class Command ():
                 self.outputData = self.mavlink.getValue("SENSOR_STATE")
             trial += 1
     ############ CONTROL COMMAND ############
-    def unitSelect(self,client_ID):
-        if client_ID != self.MQTT.client_id:
-            #if yes then set to True to not be run in execute
-            IS_IN_CONTROLLED = True
-        elif client_ID == self.MQTT.client_id:
-            #if it was chosen - mean that the client ID is right
-            self.outputData = {
-                'STATE' : 'UNIT SELECTED'
-            }
-        if client_ID == 'EXIT':
-            #if yes then set it back to alow control on it self
-            IS_IN_CONTROLLED = False
+    ############ GPS AVOIDANCE ############
     def sendGPSfeedback(self):
         #take the GPS data first
         feedbackData = self.GPS.packingData()
@@ -250,29 +239,9 @@ class Command ():
                 self.MQTT.publishMsg(self.topic,self.outputData,prop=DRONE_COM)
                 self.MQTT.Client.loop_forever()
         if DATA["TYPE"] == UNIT:
-            CMD = DATA["UNIT_CMD"]["CMD"]
-            if CMD != "UNIT_SELECT":
-                #take in the data of the drone itself
-                self.HANDLE_DATA = DATA["UNIT_CMD"][str(self.MQTT.client_id)]
-                ############# SYSTEM COMMAND ############
-                if CMD == "COMMUNICATION_CHECK_UP":
-                    self.comCheckUp()
-                elif CMD == "POSITION_REPORT":
-                    self.posReport()
-                elif CMD == "SYSTEM_REPORT":
-                    self.sysReport(self.HANDLE_DATA["SYS_REPORT"])
-                ############# CONTROL COMMAND ############
-                if CMD == "ARM":
-                    self.mavlink.arm(1)
-                elif CMD == "TAKE_OFF":
-                    self.mavlink.takeoff(self.HANDLE_DATA["ALT"])
-                #scan to see if the return feedback data is available, if yes return it
-                if self.outputData:
-                    self.MQTT.connectBroker()
-                    time.sleep(WAIT_TO_CONNECT)
-                    self.MQTT.publishMsg(self.topic,self.outputData,prop=DRONE_COM)
-                    self.MQTT.Client.loop_forever()
-            elif CMD == "UNIT_SELECT" and DATA["UNIT_CMD"]["UNIT"] == str(self.MQTT.client_id):
+            if self.MQTT.client_id in DATA["UNIT_CMD"]["UNIT_ENABLE"]:
+                #get the command for easy use 
+                CMD = DATA["UNIT_CMD"]["CMD"]
                 self.HANDLE_DATA = DATA["UNIT_CMD"][str(self.MQTT.client_id)]
                 ############# SYSTEM COMMAND ############
                 if CMD == "COMMUNICATION_CHECK_UP":
@@ -311,7 +280,7 @@ msg_recv = {
     },
     “UNIT_CMD” : {
         “CMD” : “value”,
-        "UNIT" " "UNIT_ID"
+        "UNIT_ENABLE" " : [all the unit ID]
         “client 1” : {
             “SYS_REPORT” : “BAT or GPS, etc”,
             “ALT” : “alt value”,
@@ -352,8 +321,7 @@ def takeoff():
 
     def execute(self,DICT_DATA):
         #start the thread and run the need code
-        if not IS_IN_CONTROLLED:
-            dataExecuteThread = threading.Thread(target=self.Command.handle(), args=(DICT_DATA))
-            dataExecuteThread.start()
+        dataExecuteThread = threading.Thread(target=self.Command.handle(), args=(DICT_DATA))
+        dataExecuteThread.start()
     def report(self):
         pass
