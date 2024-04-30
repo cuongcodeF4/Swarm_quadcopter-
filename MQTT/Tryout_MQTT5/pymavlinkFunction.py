@@ -175,3 +175,32 @@ class MAV():
         return output_msg
     def setPara(self):
         pass
+class GPS():
+    def __init__(self) -> None:
+        #set up the connection when the class being create 
+        self.drone  = mavutil.mavlink_connection('udp:172.30.144.1:14550')
+        #setup as the drone is waiting on connect, wait for the confirm heartbeat before doing anything
+        self.drone.wait_heartbeat()
+    #packing the GPS cooordinate data and ready to be send out 
+    def packingData(self):
+        #getting the long lat and alt of the drone itself
+        while True:
+                #get the abs timeout time by using real time in the instant of the code occur
+                timeout = time.time() + 2
+                # Continuously listen for messages with a 2-second timeout
+                msg = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = timeout)
+                if msg:
+                    output_msg = [msg.lon, msg.lat]
+                else:
+                    output_msg = ["GPS data fail to obtain"]
+                #taking the alt value of the drone it self
+                msg = self.drone.recv_match(type='ALTITUDE', blocking=True, timeout  = timeout)
+                if msg:
+                    output_msg = output_msg + msg.altitude_relative
+                    break
+                else:
+                    output_msg = ["GPS data fail to obtain", "Alt data fail to obtain"]
+                    break
+        #return data ["lon", "lat","alt"]
+        return output_msg
+    

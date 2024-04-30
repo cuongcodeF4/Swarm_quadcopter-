@@ -1,14 +1,12 @@
 SYS_INVALID = 0
 DRONE_NUMBER = 3
 WAIT_TO_CONNECT = 2
-SYS_COM = "topicSystemCom"
 DRONE_COM = "topicDroneCom22"
-CONTROL_COM = "topicControlCom"
 LSTWILLMSG = "LastWillMessageType"
 INITMSG = "InitMessageType"
 CMD        = "CommandType"
 MASTERLSTWIL = "MasterLastWillMessageType"
-GPSINFO = "GPS info for auto avoidance using GPS"
+GPSINFO = "GPSinfo"
 
 ADD_CONNECT = 1
 SUB_CONNECT =-1 
@@ -33,3 +31,6 @@ OFF = 0
 
 IS_IN_CONTROLLED = False
 MAX_TRIAL = 5
+
+ALL  = "ALL_UNIT_SELECT"
+UNIT  = "EACH_DRONE_SELECT"

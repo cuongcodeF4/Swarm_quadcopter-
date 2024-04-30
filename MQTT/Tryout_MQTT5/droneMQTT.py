@@ -36,7 +36,6 @@ class droneMQTT(object):
             self.log.put( self.client_id + " connected to MQTT Broker: " +str(reasonCode))
             print("[INFO]Connected to MQTT Broker!")
             print("[INFO]Status",str(reasonCode) )
-     
         
         def on_publish(client, userdata, mid):
             self.log.put( self.client_id + " published message")
@@ -176,12 +175,18 @@ class droneInstance():
 class Command ():
     #########data transfer to the master will retain as dict form ############
     def __init__(self):
+        #init needed object
         self.MQTT = droneMQTT()
         self.mavlink = pymavlinkFunction.MAV()
+        self.GPS = pymavlinkFunction.GPS()
+        #init needed variable
+        self.HANDLE_DATA = None
         self.outputData = None
     def comCheckUp(self):
         #send ACK bit to the drone master
-        ACKbit = "ACK" + self.MQTT.client_id
+        ACKbit = {
+            "STATE" : "ACK" + self.MQTT.client_id
+        }
         self.outputData = ACKbit
     def posReport(self):
         trial = 0
@@ -204,7 +209,7 @@ class Command ():
         if client_ID != self.MQTT.client_id:
             #if yes then set to True to not be run in execute
             IS_IN_CONTROLLED = True
-        else:
+        elif client_ID == self.MQTT.client_id:
             #if it was chosen - mean that the client ID is right
             self.outputData = {
                 'STATE' : 'UNIT SELECTED'
@@ -212,50 +217,143 @@ class Command ():
         if client_ID == 'EXIT':
             #if yes then set it back to alow control on it self
             IS_IN_CONTROLLED = False
+    def sendGPSfeedback(self):
+        #take the GPS data first
+        feedbackData = self.GPS.packingData()
+        #pub the data in to the master
+        self.MQTT.connectBroker()
+        time.sleep(WAIT_TO_CONNECT)
+        self.MQTT.publishMsg(self.topic,feedbackData,prop=GPSINFO)
+        self.MQTT.Client.loop_forever()
 
     ############ handling function ############
-    def handle(self, CMD, VALUE1, VALUE2):
-        ############# SYSTEM COMMAND ############
-        if CMD == "comCheckUp":
-            self.comCheckUp()
-        elif CMD == "posReport":
-            self.posReport()
-        elif CMD == "sysReport":
-            self.sysReport(VALUE1)
-        ############# CONTROL COMMAND ############
-        if CMD == "ARM":
-            self.mavlink.arm(1)
-        elif CMD == "TAKE_OFF":
-            self.mavlink.takeoff(VALUE1)
-        elif CMD == "unitSelect":
-            pass
-        #scan to see if the return feedback data is needed or not
-        if self.outputData:
-            self.MQTT.connectBroker()
-            time.sleep(WAIT_TO_CONNECT)
-            self.MQTT.publishMsg(self.topic,self.outputData,prop=None)
-            self.MQTT.Client.loop_forever()
+    def handle(self, DATA):
+        if DATA["TYPE"] == ALL:
+            #get the data
+            self.HANDLE_DATA = DATA["ALL_CMD"]
+            ############# SYSTEM COMMAND ############
+            if self.HANDLE_DATA["CMD"] == "COMMUNICATION_CHECKUP":
+                self.comCheckUp()
+            elif self.HANDLE_DATA["CMD"] == "POSITION_REPORT":
+                self.posReport()
+            elif self.HANDLE_DATA["CMD"] == "SYSTEM_REPORT":
+                self.sysReport(self.HANDLE_DATA["SYS_REPORT"])
+            ############# CONTROL COMMAND ############
+            if self.HANDLE_DATA["CMD"] == "ARM":
+                self.mavlink.arm(1)
+            elif self.HANDLE_DATA["CMD"] == "TAKE_OFF":
+                self.mavlink.takeoff(self.HANDLE_DATA["ALT"])
+            #scan to see if the return feedback data is needed or not
+            if self.outputData:
+                self.MQTT.connectBroker()
+                time.sleep(WAIT_TO_CONNECT)
+                self.MQTT.publishMsg(self.topic,self.outputData,prop=DRONE_COM)
+                self.MQTT.Client.loop_forever()
+        if DATA["TYPE"] == UNIT:
+            CMD = DATA["UNIT_CMD"]["CMD"]
+            if CMD != "UNIT_SELECT":
+                #take in the data of the drone itself
+                self.HANDLE_DATA = DATA["UNIT_CMD"][str(self.MQTT.client_id)]
+                ############# SYSTEM COMMAND ############
+                if CMD == "COMMUNICATION_CHECK_UP":
+                    self.comCheckUp()
+                elif CMD == "POSITION_REPORT":
+                    self.posReport()
+                elif CMD == "SYSTEM_REPORT":
+                    self.sysReport(self.HANDLE_DATA["SYS_REPORT"])
+                ############# CONTROL COMMAND ############
+                if CMD == "ARM":
+                    self.mavlink.arm(1)
+                elif CMD == "TAKE_OFF":
+                    self.mavlink.takeoff(self.HANDLE_DATA["ALT"])
+                #scan to see if the return feedback data is available, if yes return it
+                if self.outputData:
+                    self.MQTT.connectBroker()
+                    time.sleep(WAIT_TO_CONNECT)
+                    self.MQTT.publishMsg(self.topic,self.outputData,prop=DRONE_COM)
+                    self.MQTT.Client.loop_forever()
+            elif CMD == "UNIT_SELECT" and DATA["UNIT_CMD"]["UNIT"] == str(self.MQTT.client_id):
+                self.HANDLE_DATA = DATA["UNIT_CMD"][str(self.MQTT.client_id)]
+                ############# SYSTEM COMMAND ############
+                if CMD == "COMMUNICATION_CHECK_UP":
+                    self.comCheckUp()
+                elif CMD == "POSITION_REPORT":
+                    self.posReport()
+                elif CMD == "SYSTEM_REPORT":
+                    self.sysReport(self.HANDLE_DATA["SYS_REPORT"])
+                ############# CONTROL COMMAND ############
+                if CMD == "ARM":
+                    self.mavlink.arm(1)
+                elif CMD == "TAKE_OFF":
+                    self.mavlink.takeoff(self.HANDLE_DATA["ALT"])
+                #scan to see if the return feedback data is available, if yes return it
+                if self.outputData:
+                    self.MQTT.connectBroker()
+                    time.sleep(WAIT_TO_CONNECT)
+                    self.MQTT.publishMsg(self.topic,self.outputData,prop=DRONE_COM)
+                    self.MQTT.Client.loop_forever()
+
 
 
 ############ Function ############
 class function():
     #data format
     '''
-    msg_recv = {
-        "CMD" : "data",
-        "VALUE1" : "data", 
-        "VALUE2" : "data", 
-        "VALUE3" : "data"
+msg_recv = {
+    “TYPE” : “ALL or UNIT”,
+    “ALL_CMD” : {
+        “CMD” : “value”,
+        “SYS_REPORT” : “BAT or GPS, etc”,
+        “ALT” : “alt value”,
+        “LON” : “lon value”,
+        “LAT” : “lat value”,
+        ……
+    },
+    “UNIT_CMD” : {
+        “CMD” : “value”,
+        "UNIT" " "UNIT_ID"
+        “client 1” : {
+            “SYS_REPORT” : “BAT or GPS, etc”,
+            “ALT” : “alt value”,
+            “LON” : “lon value”,
+            “LAT” : “lat value”,
+            ……
+        },
+        “client 2” : {
+            “SYS_REPORT” : “BAT or GPS, etc”,
+            “ALT” : “alt value”,
+            “LON” : “lon value”,
+            “LAT” : “lat value”,
+            ……
+        },
+        “client 3” : {
+            “SYS_REPORT” : “BAT or GPS, etc”,
+            “ALT” : “alt value”,
+            “LON” : “lon value”,
+            “LAT” : “lat value”,
+            ……
+        },
+        “client 4” : {
+            “SYS_REPORT” : “BAT or GPS, etc”,
+            “ALT” : “alt value”,
+            “LON” : “lon value”,
+            “LAT” : “lat value”,
+            ……
+        }
     }
-    '''
+}
+
+def takeoff():
+    if 
+'''
     def __init__(self):
         self.MQTT = droneMQTT()
         self.Command = Command()
 
-    def execute(self,data):
+    def execute(self,DICT_DATA):
         #start the thread and run the need code
         if not IS_IN_CONTROLLED:
-            dataExecuteThread = threading.Thread(target=self.Command.handle(), args=(data['CMD'], data['VALUE1'], data['VALUE2']))
+            dataExecuteThread = threading.Thread(target=self.Command.handle(), args=(DICT_DATA))
             dataExecuteThread.start()
     def report(self):
         pass
