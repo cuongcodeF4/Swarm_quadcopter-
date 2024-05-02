@@ -242,8 +242,8 @@ class Command ():
             #scan to make sure that the drone is in controlled
             if self.MQTT.client_id in DATA["UNIT_CMD"]["UNIT_ENABLE"]:
                 #get the command for easy use 
-                CMD = DATA["UNIT_CMD"]["CMD"]
-                self.HANDLE_DATA = DATA["UNIT_CMD"][str(self.MQTT.client_id)]
+                CMD = DATA["UNIT_CMD"]["CLIENT_DATA"]["CMD"]
+                self.HANDLE_DATA = DATA["UNIT_CMD"]["CLIENT_DATA"]
                 ############# SYSTEM COMMAND ############
                 if CMD == "COMMUNICATION_CHECK_UP":
                     self.comCheckUp()
@@ -280,35 +280,13 @@ msg_recv = {
         ……
     },
     “UNIT_CMD” : {
-        “CMD” : “value”,
-        "UNIT_ENABLE" " : [all the unit ID]
-        “client 1” : {
+        "UNIT_ENABLE" : [all the unit ID]
+        “CLIENT_DATA” : {
+            “CMD” : “value”,
             “SYS_REPORT” : “BAT or GPS, etc”,
             “ALT” : “alt value”,
             “LON” : “lon value”,
             “LAT” : “lat value”,
-            ……
-        },
-        “client 2” : {
-            “SYS_REPORT” : “BAT or GPS, etc”,
-            “ALT” : “alt value”,
-            “LON” : “lon value”,
-            “LAT” : “lat value”,
-            ……
-        },
-        “client 3” : {
-            “SYS_REPORT” : “BAT or GPS, etc”,
-            “ALT” : “alt value”,
-            “LON” : “lon value”,
-            “LAT” : “lat value”,
-            ……
-        },
-        “client 4” : {
-            “SYS_REPORT” : “BAT or GPS, etc”,
-            “ALT” : “alt value”,
-            “LON” : “lon value”,
-            “LAT” : “lat value”,
-            ……
         }
     }
 }
