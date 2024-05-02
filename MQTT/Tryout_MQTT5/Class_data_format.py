@@ -62,11 +62,14 @@ class DATA():
         elif CMD != "SYSTEM_REPORT":
             return {
                 "TYPE" : "ALL",
-                "ALL_CMD" : {
-                    "CMD" : CMD,
-                    "ALT" : ALT,
-                    "LON" : LON,
-                    "LAT" : LAT,
+                "UNIT_CMD" : {
+                    "UNIT_ENABLE" : UNIT_ENABLE,
+                    "CLIENT_DATA" : {
+                        "CMD" : CMD,
+                        "ALT" : ALT,
+                        "LON" : LON,
+                        "LAT" : LAT,
+                    }
                 }
             }
 
