@@ -13,13 +13,13 @@ lastWillMsg = SYS_INVALID
 LstData = ["command1","command2","command3"]
 
 
-msgPayload1 = {'position':1,'accel':11,'vel':111}
-msgPayload2 = {'position':2,'accel':22,'vel':222}
-msgPayload3 = {'position':3,'accel':33,'vel':333}
 
 # for number in range(DRONE_NUMBER):
-    
-messagePayload = [msgPayload1,msgPayload2,msgPayload3]
+#payload that need to be send and config
+# is it for all the drone are just apply for once drone at a time?
+#can it be a different type of data like dict or tuple, just need to be different from list?
+
+messagePayload = []
 payload = {}
 
 data= Queue()
@@ -58,6 +58,8 @@ if __name__ == '__main__':
     #Initial the current drone connected to broker 
     droneConnected = 0
     masterRecvLW     = droneMQTT(client_id="MaterLstWil")
+    #change this to change the props["typeMsg"] info.
+    #what type to send to or what channel will be use
     thdMasterRecvLW  = threading.Thread(target=MasterReceiveLW, args=(masterRecvLW,DRONE_COM,)) 
     thdMasterRecvLW.start()
 

@@ -13,7 +13,7 @@ import time
 
 #so that we need to build a class that have all the control algorithm
 #when init the class, an mavlink object gonna be create and can be use to 
-
+#what 
 
 
 #main class

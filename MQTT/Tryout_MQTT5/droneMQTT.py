@@ -290,10 +290,6 @@ msg_recv = {
         }
     }
 }
-
-def takeoff():
-    if 
-
     '''
     def __init__(self):
         self.MQTT = droneMQTT()
