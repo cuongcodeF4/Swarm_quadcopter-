@@ -7,6 +7,9 @@ CONTROL_COM = "topicControlCom"
 LSTWILLMSG = "LastWillMessageType"
 INITMSG = "InitMessageType"
 CMD        = "CommandType"
+
+
+
 MASTERLSTWIL = "MasterLastWillMessageType"
 
 ADD_CONNECT = 1
