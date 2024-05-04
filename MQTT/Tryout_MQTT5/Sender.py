@@ -77,7 +77,7 @@ class Master(object):
         if (not queueDataSend.empty()) and (self.droneConnected == self.droneNumber):
             dataSend = queueDataSend.get()
             custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
-            custom_properties.UserProperty = [("typeMsg",CMD)] 
+            custom_properties.UserProperty = [("typeMsg",CMD)]
             #Send all command
             self.Master.publishMsg(topic= DRONE_COM, payload= dataSend, prop =custom_properties)          
             print("[DEBUG] Master sends message") 
