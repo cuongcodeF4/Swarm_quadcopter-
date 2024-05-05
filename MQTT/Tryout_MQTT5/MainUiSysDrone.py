@@ -118,7 +118,7 @@ class MyWindow(QMainWindow):
         self.ui.typeControlComboBox.activated.connect(self.enableSelectDrone)
         # self.ui.commandComboBox.activated.connect(self.addCommand)
         self.ui.startMaster.clicked.connect(self.runMaster)
-        self.ui.stopMaster.clicked.connect(self.stopMaster)
+        self.ui.stopMaster.clicked.connect(self.updateBattery)
         self.ui.bntSendCommand.clicked.connect(self.sendCommand)
         self.run = 0 
         
@@ -330,20 +330,18 @@ class MyWindow(QMainWindow):
             label.setVisible(True)  # Make label visible
             self.drone_labels.append(label)
             self.batteryDrone.append(self.progressBar)
-
-            
-            # self.progressBar.setStyleSheet("""
-            # QProgressBar::chunk {
-            #     background-color: green; /* Set the color of the filled portion */
-            # }                        
-            # """)
             
     def updateBattery(self):
-        self.listBat = []
+        self.listBat = self.master.listBattery
         for index in range(len(self.listBat)):
             progress = self.batteryDrone[index]
-            
-
+            if self.listBat[index] <= 20:
+                progress.setStyleSheet("""
+                QProgressBar::chunk {
+                    background-color: red; /* Set the color of the filled portion */
+                }                        
+                """)
+            progress.setValue(self.listBat[index])
             
     def resizeEvent(self, event):
         # Call your function here

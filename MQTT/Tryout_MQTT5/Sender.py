@@ -23,6 +23,7 @@ class Master(object):
         self.stsConnectBroker = None
         self.droneConnectList = []
         self.connectStatus = None
+        self.listBattery = [100,12,56]
     def masterConnectBroker(self):  
         print("Enter master")
         #Create a client to receive the message last will from the drones
@@ -93,3 +94,29 @@ class Master(object):
                 self.droneConnectList.append(idDrone)
                 self.logMaster.put( "Drone"+ str(idDrone) + " connected.")
                 print("[DEBUG] Drone was connected = ", self.droneConnected)
+                
+            ##################################################################
+            #Here is code to handle system report e.g: BAT, SENSOR, GPS,...  #
+            ##################################################################
+            ######################### FORMAT #############################
+            # sysReport = {
+            #                 “BAT” : {
+            #                     “Client_ID” : 1,
+            #                     “Battery_percent” : 20 (%),
+            #                     ……
+            #                 },
+            #                 “GPS” : {
+            #                         “Client_ID” : 1,
+            #                         “ALT” : “alt value”,
+            #                         “LON” : “lon value”,
+            #                         “LAT” : “lat value”,
+            #                         }
+            #                 }
+            elif properties['typeMsg'] == REPORTMSG:
+                msgReport = message.payload.decode()
+                idDrone = int(msgReport["BAT"]["Client_ID"])
+                # Update value of battery with corresponding id
+                self.listBattery[idDrone-1] = int(msgReport["BAT"]["Battery_percent"])
+
+
+

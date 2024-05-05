@@ -6,6 +6,7 @@ DRONE_COM = "topicDroneCom22"
 CONTROL_COM = "topicControlCom"
 LSTWILLMSG = "LastWillMessageType"
 INITMSG = "InitMessageType"
+REPORTMSG = "SystemReportMessageType"
 CMD        = "CommandType"
 
 
