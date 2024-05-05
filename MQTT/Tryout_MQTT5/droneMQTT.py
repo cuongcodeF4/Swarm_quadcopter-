@@ -174,12 +174,12 @@ class decodeCommand ():
     #########data transfer to the master will retain as dict form ############
     def __init__(self, droneID):
         #init needed object
-        self.MQTT = droneMQTT()
-        self.mavlink = pymavlinkFunction.MAV()
-        self.GPS = pymavlinkFunction.GPS()
+        #self.MQTT = droneMQTT()
+        #self.mavlink = pymavlinkFunction.MAV()
+        #self.GPS = pymavlinkFunction.GPS()
         #init needed variable
-        self.drone = droneID
         self.HANDLE_DATA = None
+        self.droneID = droneID
         self.outputData = None
 
     def posReport(self):
@@ -199,6 +199,9 @@ class decodeCommand ():
                 self.outputData = self.mavlink.getValue("SENSOR_STATE")
             trial += 1
     ############ CONTROL COMMAND ############
+
+
+
     ############ GPS AVOIDANCE ############
     def sendGPSfeedback(self):
         #take the GPS data first
