@@ -5,6 +5,7 @@ from pathlib import Path
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import QtCore, QtGui
+from PyQt5.QtGui import QFont
 from datetime import datetime
 import time
 from SymbolicName import *
@@ -92,7 +93,9 @@ class MyWindow(QMainWindow):
         self.num_drones = 0
 
         # Initialize list to store drone labels
-        self.drone_labels = []   
+        self.drone_labels = []  
+
+        self.batteryDrone = []  
 
         #Queue contain data to send to drone
         self.dataSend = Queue()
@@ -100,6 +103,7 @@ class MyWindow(QMainWindow):
         self.payload = {}
 
         self.listCmd = []
+        self.typeCmd = ALL
 
         self.sizeImage = 100
 
@@ -112,7 +116,7 @@ class MyWindow(QMainWindow):
         self.typeList = ["All Drones","One Drone"]       
         self.ui.typeControlComboBox.addItems(self.typeList)
         self.ui.typeControlComboBox.activated.connect(self.enableSelectDrone)
-        self.ui.commandComboBox.activated.connect(self.addCommand)
+        # self.ui.commandComboBox.activated.connect(self.addCommand)
         self.ui.startMaster.clicked.connect(self.runMaster)
         self.ui.stopMaster.clicked.connect(self.stopMaster)
         self.ui.bntSendCommand.clicked.connect(self.sendCommand)
@@ -148,21 +152,54 @@ class MyWindow(QMainWindow):
     def enableSelectDrone(self):
         selected_type = self.ui.typeControlComboBox.currentText()
         if selected_type == "One Drone":
+            self.typeCmd = UNIT
             self.ui.Drone.setEnabled(True)
             self.ui.droneNrmControlLineEdit.setEnabled(True)
         else:
+            self.typeCmd = ALL 
             self.ui.Drone.setEnabled(False)
+
+    def DATA_ALL_TYPE(self,CMD, ALT=None, LON=None, LAT=None):
+            return {
+                "TYPE" : ALL,
+                "ALL_CMD" : {
+                    "CMD" : CMD,
+                    "ALT" : ALT,
+                    "LON" : LON,
+                    "LAT" : LAT}
+            }
+    def DATA_UNIT_TYPE(self,UNIT_SELECTED, CMD, ALT=None, LON=None, LAT=None):    
+            return {
+                "TYPE" : UNIT,
+                "UNIT_CMD" : {
+                    "UNIT_SELECTED" : UNIT_SELECTED,
+                        "CMD" : CMD,
+                        "ALT" : ALT,
+                        "LON" : LON,
+                        "LAT" : LAT
+                        }
+                    }
     def addCommand(self):
         self.listCmd= []
         self.payload= {}
-        cmd = self.ui.commandComboBox.currentText()
+        cmd = self.ui.commandComboBox.currentText() 
         if cmd != "Choose the command":
-            for _ in range(self.num_drones):
-                self.listCmd.append(cmd)
-            for drone in range(self.num_drones):
-                self.payload[f"{drone+1}"] = self.listCmd[drone]
-                print("[DEBUG] Payload",self.payload )      
+            alt = self.ui.altValue.text()
+            long = self.ui.longValue.text()
+            lat = self.ui.latValue.text()
+            if self.typeCmd == ALL:
+                self.payload = self.DATA_ALL_TYPE(cmd,alt,long,lat)
+            elif self.typeCmd == UNIT:
+                droneSelected = self.ui.droneNrmControlLineEdit.text()
+                self.payload = self.DATA_UNIT_TYPE(droneSelected,cmd,alt,long,lat)
+
+            # for _ in range(self.num_drones):
+            #     self.listCmd.append(cmd)
+            # for drone in range(self.num_drones):
+            #     self.payload[f"{drone+1}"] = self.listCmd[drone]
+            #     print("[DEBUG] Payload",self.payload )      
     def sendCommand(self):
+        self.addCommand()
         if self.run ==1:
             if self.master.droneConnected == self.num_drones:
                 self.dataSend.put(ujson.dumps(self.payload))
@@ -180,9 +217,15 @@ class MyWindow(QMainWindow):
         for label in self.drone_labels:
             label.deleteLater()
             self.drone_labels = []
+
+        for bat in self.batteryDrone:
+            bat.deleteLater()
+            self.batteryDrone = []
         try:
             # Get the number of drones from the line edit
             self.num_drones = int(self.ui.nrbOfDroneLineEdit.text())
+            if self.num_drones <= 0:
+                return
         except:
             print("[ERORR] Incorrect type.Please input an integer number")
         
@@ -273,11 +316,35 @@ class MyWindow(QMainWindow):
         self.scaled_pixmap = self.droneImageOff.scaled(size, size)
 
         for nbrDrone in range(self.num_drones):
+            #Create drone instances are pictures 
             label = QLabel(self.ui.droneStatusGroupBox)
             label.setGeometry(self.posList[nbrDrone][0], self.posList[nbrDrone][1], size, size)
+            
+            #Show battery of each drone
+            self.progressBar = QProgressBar(self.ui.droneStatusGroupBox)
+            self.progressBar.setGeometry(self.posList[nbrDrone][0], self.posList[nbrDrone][1] +size+size/15, size, size/10)  # Set position and size using x, y coordinates
+            self.progressBar.setValue(70)
+            self.progressBar.setVisible(True)       
+            self.progressBar.setTextVisible(False)
             label.setPixmap(self.scaled_pixmap)
             label.setVisible(True)  # Make label visible
             self.drone_labels.append(label)
+            self.batteryDrone.append(self.progressBar)
+
+            
+            # self.progressBar.setStyleSheet("""
+            # QProgressBar::chunk {
+            #     background-color: green; /* Set the color of the filled portion */
+            # }                        
+            # """)
+            
+    def updateBattery(self):
+        self.listBat = []
+        for index in range(len(self.listBat)):
+            progress = self.batteryDrone[index]
+            
+
+            
     def resizeEvent(self, event):
         # Call your function here
         if self.ui.nrbOfDroneLineEdit.text(): 
