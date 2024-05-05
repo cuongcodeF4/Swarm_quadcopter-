@@ -13,3 +13,4 @@ if __name__ == '__main__':
             drone2.clientInit.droneInit(DRONE_COM)
             drone2.clientInit.logger()
         drone2.handleData(drone2.clientRecvMsg)
+        
