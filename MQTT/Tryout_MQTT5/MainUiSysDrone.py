@@ -42,6 +42,7 @@ class MasterInit(QThread):
     updateConsoleLog  = pyqtSignal(str,str)
     checkConnectDrone = pyqtSignal()
     updateDroneSts    = pyqtSignal()
+    updateBatDrone    = pyqtSignal()
     def __init__(self,func,master,dataSend):
         super().__init__()
         self.func = func
@@ -65,7 +66,10 @@ class MasterInit(QThread):
             if self.masterPC.connectStatus != None:
                 print("[DEBUG] update drone status")
                 self.updateDroneSts.emit()
-                self.masterPC.connectStatus = None # hHelp the signal only callback when client connect or disconnect with broker 
+                self.masterPC.connectStatus = None # Help the signal only callback when client connect or disconnect with broker     
+            if self.masterPC.updateStsBat == ON :
+                self.masterPC.updateStsBat = OFF
+                self.updateBatDrone.emit()
             time.sleep(0.1) 
 
 class MyWindow(QMainWindow):
@@ -118,7 +122,7 @@ class MyWindow(QMainWindow):
         self.ui.typeControlComboBox.activated.connect(self.enableSelectDrone)
         # self.ui.commandComboBox.activated.connect(self.addCommand)
         self.ui.startMaster.clicked.connect(self.runMaster)
-        self.ui.stopMaster.clicked.connect(self.updateBattery)
+        self.ui.stopMaster.clicked.connect(self.stopMaster)
         self.ui.bntSendCommand.clicked.connect(self.sendCommand)
         self.run = 0 
         
@@ -140,6 +144,7 @@ class MyWindow(QMainWindow):
                 self.masterInit.updateButton.connect(self.updateBntStartMaster)
                 self.masterInit.checkConnectDrone.connect(self.master.masterCheckConnect)
                 self.masterInit.updateDroneSts.connect(self.showDroneConnect)
+                self.masterInit.updateBatDrone.connect(self.updateBattery)
 
     def stopMaster(self):
         self.printLog("INFO","Master was disconnected with broker")

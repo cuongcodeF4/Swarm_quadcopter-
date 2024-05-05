@@ -24,6 +24,7 @@ class Master(object):
         self.droneConnectList = []
         self.connectStatus = None
         self.listBattery = [100,12,56]
+        self.updateStsBat = OFF
     def masterConnectBroker(self):  
         print("Enter master")
         #Create a client to receive the message last will from the drones
@@ -113,6 +114,7 @@ class Master(object):
             #                         }
             #                 }
             elif properties['typeMsg'] == REPORTMSG:
+                self.updateStsBat = ON
                 msgReport = message.payload.decode()
                 idDrone = int(msgReport["BAT"]["Client_ID"])
                 # Update value of battery with corresponding id
