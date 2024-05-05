@@ -14,13 +14,10 @@ def circle_trajectory(step, maneuver_time, diameter, direction, initial_alt, ste
     vy = (diameter / 2) * math.cos(theta) * 2 * direction * math.pi / maneuver_time
     vz = 0
 
-    ax = -(diameter / 2) * math.cos(theta) * 4 * direction * math.pi ** 2 / maneuver_time ** 2
-    ay = -(diameter / 2) * math.sin(theta) * 4 * direction * math.pi ** 2 / maneuver_time ** 2
-    az = 0
+    return x, y, z, vx, vy, vz
 
-    return x, y, z, vx, vy, vz, ax, ay, az
 
-def square_trajectory(step, maneuver_time, diameter, direction, initial_alt, step_time):
+def square_trajectory(step, maneuver_time, diameter, direction,initial_alt, step_time):
     t = step * step_time
     side_length = diameter / math.sqrt(2)
     side_time = maneuver_time / 4
@@ -54,8 +51,4 @@ def square_trajectory(step, maneuver_time, diameter, direction, initial_alt, ste
     if direction == -1:
         vx, vy = vy, vx
 
-    ax = -side_length / side_time ** 2 * math.sin(2 * direction * math.pi * t / maneuver_time) if (current_side == 0 or current_side == 2) else 0
-    ay = -side_length / side_time ** 2 * math.cos(2 * direction * math.pi * t / maneuver_time) if (current_side == 1 or current_side == 3) else 0
-    az = 0
-
-    return x, y, z, vx, vy, vz, ax, ay, az
+    return x, y, z, vx, vy, vz
