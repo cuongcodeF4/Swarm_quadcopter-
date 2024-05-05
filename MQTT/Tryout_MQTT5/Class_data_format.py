@@ -3,22 +3,18 @@ msg_recv = {
     “TYPE” : “ALL or UNIT”,
     “ALL_CMD” : {
         “CMD” : “value”,
-        “SYS_REPORT” : “BAT or GPS, etc”,
         “ALT” : “alt value”,
         “LON” : “lon value”,
         “LAT” : “lat value”,
         ……
     },
     “UNIT_CMD” : {
-        "UNIT_ENABLE" : [all the unit ID]
-        “CLIENT_DATA” : {
-            “CMD” : “value”,
-            “SYS_REPORT” : “BAT or GPS, etc”,
-            “ALT” : “alt value”,
-            “LON” : “lon value”,
-            “LAT” : “lat value”,
-        }
-    }
+        "UNIT_SELECTED" : [all the unit ID]
+        “CMD” : “value”,
+        “ALT” : “alt value”,
+        “LON” : “lon value”,
+        “LAT” : “lat value”,
+    },ß
 }
 """
 class DATA():
