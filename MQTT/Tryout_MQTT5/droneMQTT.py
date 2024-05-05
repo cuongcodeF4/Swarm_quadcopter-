@@ -190,7 +190,7 @@ class Command ():
         self.outputData = ACKbit
     def posReport(self):
         trial = 0
-        while self.outputData and trial <= MAX_TRIAL:
+        while not self.outputData and trial <= MAX_TRIAL:
             #get the needed pos coordinate of the droene it self
             self.outputData = self.mavlink.getValue("GPS")
             self.outputData.update(self.mavlink.getValue("ALT"))
