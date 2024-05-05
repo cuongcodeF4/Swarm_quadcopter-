@@ -328,7 +328,7 @@ class MyWindow(QMainWindow):
             #Show battery of each drone
             self.progressBar = QProgressBar(self.ui.droneStatusGroupBox)
             self.progressBar.setGeometry(self.posList[nbrDrone][0], self.posList[nbrDrone][1] +size+size/15, size, size/10)  # Set position and size using x, y coordinates
-            self.progressBar.setValue(70)
+            # self.progressBar.setValue(100)
             self.progressBar.setVisible(True)       
             self.progressBar.setTextVisible(False)
             label.setPixmap(self.scaled_pixmap)

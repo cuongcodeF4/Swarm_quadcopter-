@@ -119,6 +119,7 @@ class Master(object):
                 idDrone = int(msgReport["BAT"]["Client_ID"])
                 # Update value of battery with corresponding id
                 self.listBattery[idDrone-1] = int(msgReport["BAT"]["Battery_percent"])
+                
 
 
 
