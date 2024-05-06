@@ -13,6 +13,8 @@ from datetime import datetime
 import pymavlinkFunction
 
 
+temp_time = None
+
 class droneMQTT(object):
     def __init__(self,client_id,broker="mqtt.eclipseprojects.io",port =1883,username="swarmDrone",password="flyIsOkay"):
         self.client_id = client_id
@@ -167,7 +169,7 @@ class droneInstance():
                 if self.masterSts == MASTER_ONLINE:
                     self.droneConnected += int(msgInit) 
                     print("[DEBUG] Drone was connected = ", self.droneConnected)
-            elif properties['typeMsg'] == GPSINFO:
+            elif properties['typeMsg'] == FBINFO:
                 pass
 
 class decodeCommand ():
@@ -175,42 +177,30 @@ class decodeCommand ():
     def __init__(self, droneID):
         #init needed object
         #self.MQTT = droneMQTT()
-        #self.mavlink = pymavlinkFunction.MAV()
         #self.GPS = pymavlinkFunction.GPS()
         #init needed variable
+        self.mavlink = pymavlinkFunction.MAV()
         self.HANDLE_DATA = None
         self.droneID = droneID
         self.outputData = None
 
-    def posReport(self):
-        trial = 0
-        while not self.outputData and trial <= MAX_TRIAL:
-            #get the needed pos coordinate of the droene it self
-            self.outputData = self.mavlink.getValue("GPS")
-            self.outputData.update(self.mavlink.getValue("ALT"))
-            trial += 1
-    def sysReport(self,valueType):
-        trial = 0
-        #scan for all the needed value to see what system value the user wanna get
-        while not self.outputData and trial <= MAX_TRIAL:
-            if valueType == "BAT":
-                self.outputData = self.mavlink.getValue("BAT")
-            elif valueType == "SEN":
-                self.outputData = self.mavlink.getValue("SENSOR_STATE")
-            trial += 1
+    #def posReport(self):
+    #    trial = 0
+    #    while not self.outputData and trial <= MAX_TRIAL:
+    #        #get the needed pos coordinate of the droene it self
+    #        self.outputData = self.mavlink.getValue("GPS")
+    #        self.outputData.update(self.mavlink.getValue("ALT"))
+    #        trial += 1
+    #def sysReport(self,valueType):
+    #    trial = 0
+    #    #scan for all the needed value to see what system value the user wanna get
+    #    while not self.outputData and trial <= MAX_TRIAL:
+    #        if valueType == "BAT":
+    #            self.outputData = self.mavlink.getValue("BAT")
+    #        elif valueType == "SEN":
+    #            self.outputData = self.mavlink.getValue("SENSOR_STATE")
+    #        trial += 1
     ############ CONTROL COMMAND ############
-
-
-
-    ############ GPS AVOIDANCE ############
-    def sendGPSfeedback(self):
-        #take the GPS data first
-        feedbackData = self.GPS.packingData()
-        #pub the data in to the master
-        self.MQTT.connectBroker()
-        time.sleep(WAIT_TO_CONNECT)
-        self.MQTT.publishMsg(self.topic,feedbackData,prop=GPSINFO)
-        self.MQTT.Client.loop_forever()
 
     ############ handling function ############
     def handle(self, command):
@@ -234,16 +224,52 @@ class decodeCommand ():
         elif command["TYPE"] == UNIT:
             self.HANDLE_DATA = command["UNIT_CMD"]
             #scan to make sure that the drone is in controlled
-            if self.drone in self.HANDLE_DATA["UNIT_SELECTED"]:
-                
+            if self.droneID in self.HANDLE_DATA["UNIT_SELECTED"]:
                 ############# SYSTEM COMMAND ############
                 ############# CONTROL COMMAND ############
-                if CMD == "ARM":
+                if self.HANDLE_DATA["CMD"] == "ARM":
                     self.mavlink.arm(1)
-                elif CMD == "TAKE_OFF":
+                elif self.HANDLE_DATA["CMD"] == "TAKE_OFF":
                     self.mavlink.takeoff(self.HANDLE_DATA["ALT"])
                 elif self.HANDLE_DATA["CMD"] == "LAND":
                     self.mavlink.land()
+
+
+def sendFeedbackInfo(droneID):
+    GPS_Instance = time()
+    BAT_Instance = time()
+    GPS_update = False
+    BAT_update = False
+    #temp_time = time()
+    while True:
+        #init the base data when recycle
+        sysReport = {
+            "BAT" : {
+                "client_ID" : str(droneID),
+            },
+            "GPS" : {
+                "client_ID" : str(droneID),
+            }
+        }
+        #get GPS data after 2 sec
+        timeInstance = time()
+        if timeInstance - GPS_Instance >= 2:
+            sysReport["GPS"].update(pymavlinkFunction.getFeedbackData.GPS())
+            GPS_Instance = time()
+            GPS_update = True
+        #get BAT data after 30 sec
+        if timeInstance - BAT_Instance >= 30:
+            sysReport["BAT"].update(pymavlinkFunction.getFeedbackData.BAT())
+            BAT_Instance = time()
+            BAT_update = True
+        #send the msg
+        if GPS_update or BAT_update:
+            mqtt_client.Client(droneID,protocol=5).loop_start()
+            propFeedback = mqtt_client.Properties(props.PacketTypes.PUBLISH)
+            propFeedback.UserProperty =[("typeMsg",FBINFO),("nameDrone",droneID)]
+            mqtt_client.Client(droneID,protocol=5).publish(topic= DRONE_COM, payload=sysReport, qos=2,retain=False,properties=propFeedback)
+            mqtt_client.Client(droneID,protocol=5).loop_stop()
+        
 
 
 

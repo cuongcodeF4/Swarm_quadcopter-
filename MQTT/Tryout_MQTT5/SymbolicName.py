@@ -6,7 +6,7 @@ LSTWILLMSG = "LastWillMessageType"
 INITMSG = "InitMessageType"
 CMD        = "CommandType"
 MASTERLSTWIL = "MasterLastWillMessageType"
-GPSINFO = "GPSinfo"
+FBINFO = "feedBackInfo "
 
 ADD_CONNECT = 1
 SUB_CONNECT =-1 
