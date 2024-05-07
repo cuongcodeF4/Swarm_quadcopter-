@@ -12,6 +12,9 @@ if __name__ == '__main__':
             drone1.sendInit = SEND_INIT_SUCCESS
             drone1.clientInit.droneInit(DRONE_COM)
             drone1.clientInit.logger()
+        sendSysReportThread = threading.Thread(target=drone1.clientInit.sendFeedbackInfo) 
+        sendSysReportThread.start()
         drone1.handleData(drone1.clientRecvMsg)
+        
 
  

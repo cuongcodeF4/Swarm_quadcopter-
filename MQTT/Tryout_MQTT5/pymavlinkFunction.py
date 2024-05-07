@@ -119,30 +119,30 @@ class MAV():
                     output_msg = {
                         "ATL" : msg.altitude_relative
                     }    
-                    print("Local ALT data receive successfully!")
                     break
                 else:
-                    print("Timeout waiting for message. No ALT found!")
+                    output_msg = {
+                        'ALT' : 'NAN'
+                    }
                     break
         # GPS func
         if "GPS" == param :
             #Scan the data stream and search for GPS coordinate
             while True:
+                # List to get data from GPS
+                gps = [0]*2
                 #get the abs timeout time by using real time in the instant of the code occur
                 timeout = time.time() + 2
                 # Continuously listen for messages with a 2-second timeout
                 msg = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = timeout)
                 if msg:
                     #Scan the data and take only lat lon and alt data that needed for the position estimation
-                    output_msg = {
-                        'lon' : msg.lon,
-                        'lat' : msg.lat,
-                        'MSL_alt' : msg.relative_alt
-                    }
-                    break
+                    gps[0]= msg.lon
+                    gps[0]= msg.lat
+                    return gps
                 else:
-                    output_msg = {'data' : 'NAN'}
-                    break  # Exit the loop after timeout
+                    gps = [None,None]
+                    return gps
         # Battery check up func
         if "BAT" == param :
             while True:
@@ -151,13 +151,10 @@ class MAV():
                 msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout  = timeout)
                 if msg:
                     #get only the needed data for the need of using
-                    output_msg = {
-                        "BAT_LV" : msg.battery_remaining
-                    }    
-                    break
+                    return msg.battery_remaining
+                    
                 else:
-                    output_msg = {'data' : 'NAN'}
-                    break
+                    return None
         if "SENSOR_STATE" == param:
             while True:
                 timeout  = time.time() + 2
@@ -175,32 +172,19 @@ class MAV():
         return output_msg
     def setPara(self):
         pass
-class GPS():
+class getFeedbackData():
     def __init__(self) -> None:
         #set up the connection when the class being create 
         self.drone  = mavutil.mavlink_connection('udp:172.30.144.1:14550')
         #setup as the drone is waiting on connect, wait for the confirm heartbeat before doing anything
         self.drone.wait_heartbeat()
+        self.mavlink = MAV()
     #packing the GPS cooordinate data and ready to be send out 
-    def packingData(self):
+    def GPS(self):
         #getting the long lat and alt of the drone itself
-        while True:
-                #get the abs timeout time by using real time in the instant of the code occur
-                timeout = time.time() + 2
-                # Continuously listen for messages with a 2-second timeout
-                msg = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = timeout)
-                if msg:
-                    output_msg = [msg.lon, msg.lat]
-                else:
-                    output_msg = ["GPS data fail to obtain"]
-                #taking the alt value of the drone it self
-                msg = self.drone.recv_match(type='ALTITUDE', blocking=True, timeout  = timeout)
-                if msg:
-                    output_msg = output_msg + msg.altitude_relative
-                    break
-                else:
-                    output_msg = ["GPS data fail to obtain", "Alt data fail to obtain"]
-                    break
-        #return data ["lon", "lat","alt"]
+        output_data = self.mavlink.getValue("ALT")
+        GPSdata = self.mavlink.getValue("GPS")
+        return output_data.update(GPSdata)
+    def BAT(self):
+        output_msg = self.mavlink.getValue("BAT")
         return output_msg
-    

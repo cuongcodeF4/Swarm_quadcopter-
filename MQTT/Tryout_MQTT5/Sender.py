@@ -24,6 +24,7 @@ class Master(object):
         self.droneConnectList = []
         self.connectStatus = None
         self.listBattery = [100,12,56]
+        self.preBat = 100 
         self.updateStsBat = OFF
     def masterConnectBroker(self):  
         print("Enter master")
@@ -86,6 +87,7 @@ class Master(object):
                 self.logMaster.put( "Drone"+ str(idDrone) + " disconnected. Waiting connect again... ")
                 print("[INFO] Drone was connected = ", self.droneConnected)
                 print("[INFO] {} disconnected. Waiting connect again... ".format(properties['nameDrone']))
+
             elif properties['typeMsg'] == INITMSG:             
                 print("[Execute] Handle init message")
                 msgInit= message.payload.decode()
@@ -97,7 +99,7 @@ class Master(object):
                 print("[DEBUG] Drone was connected = ", self.droneConnected)
                 
             ##################################################################
-            #Here is code to handle system report e.g: BAT, SENSOR, GPS,...  #
+            # Here is code to handle system report e.g: BAT, SENSOR, GPS,...  #
             ##################################################################
             ######################### FORMAT #############################
             # sysReport = {
@@ -114,12 +116,14 @@ class Master(object):
             #                         }
             #                 }
             elif properties['typeMsg'] == REPORTMSG:
-                self.updateStsBat = ON
                 msgReport = message.payload.decode()
                 idDrone = int(msgReport["BAT"]["Client_ID"])
-                # Update value of battery with corresponding id
-                self.listBattery[idDrone-1] = int(msgReport["BAT"]["Battery_percent"])
-                
+                if int(msgReport["BAT"]["Battery_percent"]) < self.preBat:
+                    self.preBat = int(msgReport["BAT"]["Battery_percent"])
+                    self.updateStsBat = ON    
+                    # Update value of battery with corresponding id
+                    self.listBattery[idDrone-1] = int(msgReport["BAT"]["Battery_percent"])
+                    
 
 
 
