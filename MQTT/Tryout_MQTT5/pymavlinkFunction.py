@@ -17,15 +17,57 @@ import time
 
 
 #main class
-class MAV():
+class Mav():
     #contain only the fucntion to run all the pymavlink msg needed
     #no computational involve and only take in basic data 
-    def __init__(self):
+    def __init__(self,targSys=1,ip ='udp:172.30.144.1:14550'):
         #set up the connection when the class being create 
-        self.drone  = mavutil.mavlink_connection('udp:172.30.144.1:14550')
+        self.drone  = mavutil.mavlink_connection(ip)
+        self.drone.target_system = targSys  # Thiết lập System ID cho drone1
+        self.drone.target_component = 1  # Thiết lập Component ID cho drone1
         #setup as the drone is waiting on connect, wait for the confirm heartbeat before doing anything
         self.drone.wait_heartbeat()
         print("Heartbeat from system (system %u component %u)" % (self.drone.target_system, self.drone.target_component))
+
+    def wait_drone_ready(self):
+        #-----------------------------------Wait for the drone to be ready-----------------------------------#
+        while True:
+            msg = self.drone.recv_match(type="LOCAL_POSITION_NED", blocking=True)
+            if msg:
+                print("[INFO] Drone is ready!")
+                break
+
+    def performMission(self, waypoints_list, yaw):
+        total_duration = waypoints_list[-1][0]  # Total duration is the time of the last waypoint
+        t = 0  # Time variable
+
+        while t <= total_duration:
+            # Find the current waypoint based on time
+            current_waypoint = None
+            for waypoint in waypoints_list:
+                if t <= waypoint[0]:
+                    current_waypoint = waypoint
+                    break
+
+            if current_waypoint is None:
+                # Reached the end of the trajectory
+                break
+
+            position = current_waypoint[1:4]  # Extract position (px, py, pz)
+            velocity = current_waypoint[4:7]  # Extract velocity (vx, vy, vz)
+
+            # Send the SET_POSITION_TARGET_LOCAL_NED command to the drone
+            self.drone.mav.set_position_target_local_ned_send(0,
+                                                self.drone.target_system,
+                                                self.drone.target_component,
+                                                mavutil.mavlink.MAV_FRAME_LOCAL_NED,
+                                                0b100111000000,
+                                                position[0], position[1], position[2],
+                                                velocity[0], velocity[1], velocity[2],
+                                                0, 0, 0,
+                                                yaw, 0)
+            time.sleep(0.1)
+            t += 0.1
 
     def checkACK(self):
         while True:
@@ -98,6 +140,11 @@ class MAV():
             0
         )
 
+
+
+    def recvMsgResp(self):
+        while True:
+            self.msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout = 2)
     #get value
     #user input in a ;ist of data and para user wanna take out
     #The function will scan through all the para and get all the info need for the listed para
@@ -110,81 +157,54 @@ class MAV():
         #dict for condition
         # ALT func 
         if "ALT"  == param:
-            while True:
-                timeout  = time.time() + 2
-                #continouslt listen dor messages with a 2 - second timeout 
-                msg = self.drone.recv_match(type='ALTITUDE', blocking=True, timeout  = timeout)
-                if msg:
-                    #get only the needed data for the need of using
-                    output_msg = {
-                        "ATL" : msg.altitude_relative
-                    }    
-                    break
-                else:
-                    output_msg = {
-                        'ALT' : 'NAN'
-                    }
-                    break
+            if self.msg:
+                #get only the needed data for the need of using
+                return self.msg.altitude_relative
+                
+            else:
+                return None
         # GPS func
-        if "GPS" == param :
+        elif "GPS" == param :
+            gps = [0]*2
             #Scan the data stream and search for GPS coordinate
-            while True:
-                # List to get data from GPS
-                gps = [0]*2
-                #get the abs timeout time by using real time in the instant of the code occur
-                timeout = time.time() + 2
-                # Continuously listen for messages with a 2-second timeout
-                msg = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = timeout)
-                if msg:
+            if self.msg:
                     #Scan the data and take only lat lon and alt data that needed for the position estimation
-                    gps[0]= msg.lon
-                    gps[0]= msg.lat
-                    return gps
-                else:
-                    gps = [None,None]
-                    return gps
+                gps[0]= self.msg.lon
+                gps[1]= self.msg.lat
+                return gps
+            else:
+                gps = [None,None]
+                return gps
+                 
         # Battery check up func
-        if "BAT" == param :
-            while True:
-                timeout  = time.time() + 2
-                #continouslt listen dor messages with a 2 - second timeout 
-                msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout  = timeout)
-                if msg:
-                    #get only the needed data for the need of using
-                    return msg.battery_remaining
-                    
-                else:
-                    return None
+        elif "BAT" == param :
+            if self.msg:
+                #get only the needed data for the need of using
+                return self.msg.battery_remaining
+                
+            else:
+                return None
         if "SENSOR_STATE" == param:
-            while True:
-                timeout  = time.time() + 2
-                #continouslt listen dor messages with a 2 - second timeout 
-                msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout  = timeout)
-                if msg:
-                    #get only the needed data for the need of using
-                    output_msg = {
-                        "SENSOR_HEALTH" : msg.onboard_control_sensors_health
-                    }    
-                    break
-                else:
-                    output_msg = {'data' : 'NAN'}
-                    break
-        return output_msg
+            if self.msg:
+                return self.msg.onboard_control_sensors_health
+            else:
+                return None
+
     def setPara(self):
         pass
-class getFeedbackData():
-    def __init__(self) -> None:
-        #set up the connection when the class being create 
-        self.drone  = mavutil.mavlink_connection('udp:172.30.144.1:14550')
-        #setup as the drone is waiting on connect, wait for the confirm heartbeat before doing anything
-        self.drone.wait_heartbeat()
-        self.mavlink = MAV()
-    #packing the GPS cooordinate data and ready to be send out 
-    def GPS(self):
-        #getting the long lat and alt of the drone itself
-        output_data = self.mavlink.getValue("ALT")
-        GPSdata = self.mavlink.getValue("GPS")
-        return output_data.update(GPSdata)
-    def BAT(self):
-        output_msg = self.mavlink.getValue("BAT")
-        return output_msg
+# class getFeedbackData():
+#     def __init__(self) -> None:
+#         #set up the connection when the class being create 
+#         self.drone  = mavutil.mavlink_connection('udp:172.30.144.1:14550')
+#         #setup as the drone is waiting on connect, wait for the confirm heartbeat before doing anything
+#         self.drone.wait_heartbeat()
+#         self.mavlink = MAV()
+#     #packing the GPS cooordinate data and ready to be send out 
+#     def GPS(self):
+#         #getting the long lat and alt of the drone itself
+#         output_data = self.mavlink.getValue("ALT")
+#         GPSdata = self.mavlink.getValue("GPS")
+#         return output_data.update(GPSdata)
+#     def BAT(self):
+#         output_msg = self.mavlink.getValue("BAT")
+#         return output_msg
