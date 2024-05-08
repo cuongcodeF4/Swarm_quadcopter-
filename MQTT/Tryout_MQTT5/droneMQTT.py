@@ -11,7 +11,7 @@ import threading
 import ujson
 from MainUiSysDrone import MyWindow,MasterInit
 from datetime import datetime
-import pymavlinkFunction
+from pymavlinkFunction import *
 
 
 class droneMQTT(object):
@@ -27,6 +27,10 @@ class droneMQTT(object):
         self.queueData  = Queue()
         self.log = Queue()
         self.status = CONNECT_FAILED
+
+
+
+
     def connectBroker(self,prop=None,typeClient=TYPE_CLIENT_NORMAL):
         
         """Connect a client to the broker.
@@ -107,48 +111,53 @@ class droneMQTT(object):
         propDis.UserProperty = [("typeMsg",INITMSG)]
         self.Client.publish(topic,SUB_CONNECT, qos=2,retain=False,properties=propDis)
 
-    def sendFeedbackInfo(self):
-        #init the base data when recycle
-        idDrone = self.client_id.split(":")[1]
-        sysReport = {
-                    "BAT" : {
-                        "client_ID" : idDrone,
-                        "Battery_percent":None,
-                            },
-                    "GPS" : {
-                        "client_ID" : idDrone,
-                        "LON" : None,
-                        "LAT" : None,
-                            }
-                    }
+    def sendFeedbackInfo(self,lock,targSys,ip):
+        with lock:
+            droneMavLink = Mav(targSys=targSys, ip= ip)
+            getBatThread = threading.Thread(target= droneMavLink.recvMsgResp)
+            getBatThread.start()
+            #init the base data when recycle
+            idDrone = self.client_id.split(":")[1]
+            sysReport = {
+                        "BAT" : {
+                            "Client_ID" : idDrone,
+                            "Battery_percent":None,
+                                },
+                        "GPS" : {
+                            "Client_ID" : idDrone,
+                            "LON" : None,
+                            "LAT" : None,
+                                }
+                        }
 
-        GPS_Instance = time.time()
-        BAT_Instance = time.time()
-        GPS_update = False
-        BAT_update = False
-        while True:
-            #get GPS data after 2 sec
-            timeInstance = time()
-            if timeInstance - GPS_Instance >= 1:
-                gps = pymavlinkFunction.getFeedbackData.GPS()
-                sysReport["GPS"]["LON"] = gps[0]
-                sysReport["GPS"]["LAT"] = gps[1]
-                GPS_Instance = time()
-                GPS_update = True
-            #get BAT data after 30 sec
-            if timeInstance - BAT_Instance >= 30:
-                sysReport["BAT"]["Battery_percent"] = pymavlinkFunction.getFeedbackData.BAT()
-                BAT_Instance = time()
-                BAT_update = True
-            #send the msg
-            if GPS_update or BAT_update:
-                GPS_update = False
-                BAT_update = False
-                payloadFB = ujson.dumps(sysReport)
-                self.Client.loop_start()
-                propFeedback = mqtt_client.Properties(props.PacketTypes.PUBLISH)
-                propFeedback.UserProperty =[("typeMsg",REPORTMSG),("nameDrone",idDrone)]
-                self.Client.publish(topic= DRONE_COM, payload=payloadFB, qos=2,retain=False,properties=propFeedback)
+            GPS_Instance = time.time()
+            BAT_Instance = time.time()
+            GPS_update = False
+            BAT_update = False
+            while True:
+                #get GPS data after 2 sec
+                timeInstance = time.time()
+                # if timeInstance - GPS_Instance >= 1:
+                #     gps = droneMavLink.getValue("GPS")
+                #     sysReport["GPS"]["LON"] = gps[0]
+                #     sysReport["GPS"]["LAT"] = gps[1]
+                #     GPS_Instance =  time.time()
+                #     GPS_update = True
+                #get BAT data after 30 sec
+                if timeInstance - BAT_Instance >= 3:
+                    sysReport["BAT"]["Battery_percent"] = droneMavLink.getValue("BAT")
+                    print("[INFO] Bat=",droneMavLink.getValue("BAT") )
+                    BAT_Instance =  time.time()
+                    BAT_update = True
+                #send the msg
+                if GPS_update or BAT_update:
+                    GPS_update = False
+                    BAT_update = False
+                    payloadFB = ujson.dumps(sysReport)
+                    self.Client.loop_start()
+                    propFeedback = mqtt_client.Properties(props.PacketTypes.PUBLISH)
+                    propFeedback.UserProperty =[("typeMsg",REPORTMSG),("nameDrone",idDrone)]
+                    self.Client.publish(topic= DRONE_COM, payload=payloadFB, qos=2,retain=False,properties=propFeedback)
 
 class droneInstance():
     def __init__(self,drone):
@@ -300,44 +309,6 @@ class DecodeCommand ():
                     # self.mavlink.takeoff(int(self.HANDLE_DATA["ALT"]))
                 elif self.HANDLE_DATA["CMD"] == "Land":
                     print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                    # self.mavlink.land(0,0)
-                # #scan to see if the return feedback command is available, if yes return it
-                # if self.outputData:
-                #     self.MQTT.connectBroker()
-                #     time.sleep(WAIT_TO_CONNECT)
-                #     self.MQTT.publishMsg(self.topic,self.outputData,prop=DRONE_COM)
-                #     self.MQTT.Client.loop_forever()
-
-
-    
-        
-
-############ Function ############
-# class function():
-#     #data format
-#     '''
-# msg_recv = {
-#     “TYPE” : “ALL or UNIT”,
-#     “ALL_CMD” : {
-#         “CMD” : “value”,
-#         “SYS_REPORT” : “BAT or GPS, etc”,
-#         “ALT” : “alt value”,
-#         “LON” : “lon value”,
-#         “LAT” : “lat value”,
-#         ……
-#     },
-#     “UNIT_CMD” : {
-#         "UNIT_ENABLE" : [all the unit ID]
-#         “CLIENT_DATA” : {
-#             “CMD” : “value”,
-#             “SYS_REPORT” : “BAT or GPS, etc”,
-#             “ALT” : “alt value”,
-#             “LON” : “lon value”,
-#             “LAT” : “lat value”,
-#         }
-#     }
-# }
-#     '''
 
 
 #     def __init__(self):

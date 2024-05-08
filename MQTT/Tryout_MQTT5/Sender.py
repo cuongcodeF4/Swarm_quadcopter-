@@ -22,9 +22,10 @@ class Master(object):
         self.logMaster = Queue()
         self.stsConnectBroker = None
         self.droneConnectList = []
+        self.pixhawkConnectList= []
         self.connectStatus = None
-        self.listBattery = [100,12,56]
-        self.preBat = 100 
+        self.FcConnectStatus = False
+        self.listBattery = [100,100,100]
         self.updateStsBat = OFF
     def masterConnectBroker(self):  
         print("Enter master")
@@ -116,13 +117,33 @@ class Master(object):
             #                         }
             #                 }
             elif properties['typeMsg'] == REPORTMSG:
-                msgReport = message.payload.decode()
-                idDrone = int(msgReport["BAT"]["Client_ID"])
-                if int(msgReport["BAT"]["Battery_percent"]) < self.preBat:
-                    self.preBat = int(msgReport["BAT"]["Battery_percent"])
+                try:
+                    msgReport = message.payload.decode()
+                    msgReport = ujson.loads(msgReport)
+                    idDrone = int(msgReport["BAT"]["Client_ID"])
+
+                    # if int(msgReport["BAT"]["Battery_percent"]) < self.preBat:
+                        # self.preBat = int((msgReport["BAT"]["Battery_percent"]))
                     self.updateStsBat = ON    
                     # Update value of battery with corresponding id
-                    self.listBattery[idDrone-1] = int(msgReport["BAT"]["Battery_percent"])
+                    if msgReport["BAT"]["Battery_percent"] != None:
+                        try:
+                            if idDrone in self.pixhawkConnectList:
+                                self.pixhawkConnectList.remove(idDrone)
+                                self.FcConnectStatus = True
+                                self.updateStsBat = ON
+                        except:
+                            pass
+                        self.listBattery[idDrone-1] = int(msgReport["BAT"]["Battery_percent"])
+                        
+                    else:
+                        self.listBattery[idDrone-1] = 0
+                        if idDrone not in self.pixhawkConnectList:
+                            self.pixhawkConnectList.append(idDrone)
+                            self.FcConnectStatus = True
+
+                except Exception as e:
+                    print("An error occurred:", e)
                     
 
 

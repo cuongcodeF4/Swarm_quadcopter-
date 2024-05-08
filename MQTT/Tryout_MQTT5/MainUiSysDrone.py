@@ -63,10 +63,11 @@ class MasterInit(QThread):
             self.checkConnectDrone.emit()
             if not self.masterPC.logMaster.empty():
                 self.log.put(self.masterPC.logMaster.get())  
-            if self.masterPC.connectStatus != None:
+            if self.masterPC.connectStatus != None or self.masterPC.FcConnectStatus == True:
                 print("[DEBUG] update drone status")
                 self.updateDroneSts.emit()
-                self.masterPC.connectStatus = None # Help the signal only callback when client connect or disconnect with broker     
+                self.masterPC.connectStatus = None # Help the signal only callback when client connect or disconnect with broker 
+                self.masterPC.FcConnectStatus = False    
             if self.masterPC.updateStsBat == ON :
                 self.masterPC.updateStsBat = OFF
                 self.updateBatDrone.emit()
@@ -346,6 +347,8 @@ class MyWindow(QMainWindow):
                     background-color: red; /* Set the color of the filled portion */
                 }                        
                 """)
+            else:
+                progress.setStyleSheet("")
             progress.setValue(self.listBat[index])
             
     def resizeEvent(self, event):
@@ -378,6 +381,18 @@ class MyWindow(QMainWindow):
             label.setPixmap(scaled_pixmapOn)
             label.setVisible(True)
             self.drone_labels.append(label)
+        for FcDisconnect in (self.master.pixhawkConnectList):
+            print("[DEBUG]FC off:",FcDisconnect)
+            # self.drone_labels[droneOn-1].deleteLater()
+            pathDroneImage = os.path.join(self.dirname, 'Images/drone_red.png')
+            self.droneImageOn = QtGui.QPixmap(pathDroneImage)
+            scaled_pixmapOn = self.droneImageOn.scaled(self.sizeImage, self.sizeImage)
+            label = QLabel(self.ui.droneStatusGroupBox)
+            label.setGeometry(self.posList[FcDisconnect-1][0], self.posList[FcDisconnect-1][1], self.sizeImage, self.sizeImage)
+            label.setPixmap(scaled_pixmapOn)
+            label.setVisible(True)
+            self.drone_labels.append(label)
+        
 
     def printLog(self,type,log):
         timeLog = datetime.now()
