@@ -146,7 +146,7 @@ class droneMQTT(object):
                 #get BAT data after 30 sec
                 if timeInstance - BAT_Instance >= 3:
                     sysReport["BAT"]["Battery_percent"] = droneMavLink.getValue("BAT")
-                    print("[INFO] Bat=",droneMavLink.getValue("BAT") )
+                    print("[INFO] Bat=",droneMavLink.getValue("BAT"),"of ID =", idDrone  )
                     BAT_Instance =  time.time()
                     BAT_update = True
                 #send the msg
@@ -157,6 +157,7 @@ class droneMQTT(object):
                     self.Client.loop_start()
                     propFeedback = mqtt_client.Properties(props.PacketTypes.PUBLISH)
                     propFeedback.UserProperty =[("typeMsg",REPORTMSG),("nameDrone",idDrone)]
+                    print("[INFO] ID ={} send FB = {}".format(idDrone, payloadFB))
                     self.Client.publish(topic= DRONE_COM, payload=payloadFB, qos=2,retain=False,properties=propFeedback)
 
 class droneInstance():

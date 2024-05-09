@@ -137,8 +137,8 @@ class MyWindow(QMainWindow):
             if self.run == 0:
                 self.run = 1
                 from Sender import Master 
-                self.master = Master(self.num_drones)
                 self.num_drones = int(self.ui.nrbOfDroneLineEdit.text())
+                self.master = Master(self.num_drones)              
                 self.masterInit = MasterInit(self.master.masterConnectBroker,self.master,self.dataSend)
                 self.masterInit.start()
                 self.masterInit.updateConsoleLog.connect(self.printLog)

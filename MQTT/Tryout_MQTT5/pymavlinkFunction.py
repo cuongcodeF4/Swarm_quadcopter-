@@ -20,7 +20,10 @@ import time
 class Mav():
     #contain only the fucntion to run all the pymavlink msg needed
     #no computational involve and only take in basic data 
-    def __init__(self,targSys=1,ip ='udp:172.30.144.1:14550'):
+    def __init__(self,targSys,ip):
+
+        self.ip = ip
+        self.targetSys = targSys
         #set up the connection when the class being create 
         self.drone  = mavutil.mavlink_connection(ip)
         self.drone.target_system = targSys  # Thiết lập System ID cho drone1
@@ -71,6 +74,7 @@ class Mav():
 
     def checkACK(self):
         while True:
+
             msg = self.drone.recv_match(type= "COMMAND_ACK",blocking = True)
             print(msg)
 
@@ -140,11 +144,16 @@ class Mav():
             0
         )
 
-
-
     def recvMsgResp(self):
-        while True:
-            self.msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout = 2)
+        while True:        
+            msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout = 2)
+            if msg != None:
+                if msg.get_srcSystem() == self.targetSys:       
+                    self.msg = msg
+                    print("[DEBUG] Receive message from id ={}, src ={}".format(self.ip, self.msg.get_srcSystem()))
+            else:
+                print("[DEBUG] msg =", msg)
+                self.msg = None
     #get value
     #user input in a ;ist of data and para user wanna take out
     #The function will scan through all the para and get all the info need for the listed para
@@ -159,8 +168,7 @@ class Mav():
         if "ALT"  == param:
             if self.msg:
                 #get only the needed data for the need of using
-                return self.msg.altitude_relative
-                
+                return self.msg.altitude_relative 
             else:
                 return None
         # GPS func

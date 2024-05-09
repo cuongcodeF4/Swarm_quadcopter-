@@ -25,7 +25,7 @@ class Master(object):
         self.pixhawkConnectList= []
         self.connectStatus = None
         self.FcConnectStatus = False
-        self.listBattery = [100,100,100]
+        self.listBattery = [0]*self.droneNumber
         self.updateStsBat = OFF
     def masterConnectBroker(self):  
         print("Enter master")
@@ -83,7 +83,8 @@ class Master(object):
                 self.droneConnected += int(msgLstWil) 
                 self.connectStatus = OFF
                 idDrone = int(properties["nameDrone"].split(":")[1])
-                self.droneConnectList.remove(idDrone)
+                if idDrone in self.droneConnectList:
+                    self.droneConnectList.remove(idDrone)
                 self.logMaster.put( " Drone was connected =  " + str(self.droneConnected)) 
                 self.logMaster.put( "Drone"+ str(idDrone) + " disconnected. Waiting connect again... ")
                 print("[INFO] Drone was connected = ", self.droneConnected)
@@ -95,7 +96,8 @@ class Master(object):
                 self.droneConnected += int(msgInit) 
                 idDrone =  int(properties["nameDrone"].split(":")[1])
                 self.connectStatus = ON
-                self.droneConnectList.append(idDrone)
+                if idDrone not in self.droneConnectList:
+                    self.droneConnectList.append(idDrone)
                 self.logMaster.put( "Drone"+ str(idDrone) + " connected.")
                 print("[DEBUG] Drone was connected = ", self.droneConnected)
                 
@@ -141,7 +143,6 @@ class Master(object):
                         if idDrone not in self.pixhawkConnectList:
                             self.pixhawkConnectList.append(idDrone)
                             self.FcConnectStatus = True
-
                 except Exception as e:
                     print("An error occurred:", e)
                     
