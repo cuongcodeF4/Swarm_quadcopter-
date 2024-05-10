@@ -83,7 +83,7 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>220</width>
+              <width>260</width>
               <height>40</height>
              </size>
             </property>
@@ -383,6 +383,9 @@
             <property name="lineWrapMode">
              <enum>QTextEdit::NoWrap</enum>
             </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
          </layout>
@@ -609,7 +612,7 @@
             <property name="minimumSize">
              <size>
               <width>420</width>
-              <height>200</height>
+              <height>270</height>
              </size>
             </property>
             <property name="font">
@@ -625,10 +628,26 @@
             </property>
             <layout class="QGridLayout" name="gridLayout_2" rowstretch="1,0,0,0,0,0">
              <item row="1" column="3">
-              <widget class="QLineEdit" name="longValue"/>
+              <widget class="QLineEdit" name="longValue">
+               <property name="font">
+                <font>
+                 <pointsize>8</pointsize>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+              </widget>
              </item>
              <item row="0" column="3">
-              <widget class="QLineEdit" name="altValue"/>
+              <widget class="QLineEdit" name="altValue">
+               <property name="font">
+                <font>
+                 <pointsize>10</pointsize>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+              </widget>
              </item>
              <item row="1" column="0">
               <widget class="QLabel" name="command">
@@ -649,7 +668,15 @@
               </widget>
              </item>
              <item row="2" column="3">
-              <widget class="QLineEdit" name="latValue"/>
+              <widget class="QLineEdit" name="latValue">
+               <property name="font">
+                <font>
+                 <pointsize>8</pointsize>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+              </widget>
              </item>
              <item row="3" column="0" rowspan="3" colspan="4">
               <widget class="QGroupBox" name="groupBoxMove">
@@ -766,8 +793,16 @@
                   <property name="minimumSize">
                    <size>
                     <width>120</width>
-                    <height>100</height>
+                    <height>70</height>
                    </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>8</pointsize>
+                   </font>
+                  </property>
+                  <property name="readOnly">
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>
@@ -1317,7 +1352,7 @@
      <x>0</x>
      <y>0</y>
      <width>1165</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

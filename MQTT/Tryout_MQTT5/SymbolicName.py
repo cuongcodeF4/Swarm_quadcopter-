@@ -1,5 +1,5 @@
 SYS_INVALID = 0
-DRONE_NUMBER = 3
+DRONE_NUMBER = 2
 WAIT_TO_CONNECT = 2
 SYS_COM = "topicSystemCom"
 DRONE_COM = "topicDroneCom22"
