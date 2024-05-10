@@ -27,6 +27,7 @@ class Master(object):
         self.FcConnectStatus = False
         self.listBattery = [0]*self.droneNumber
         self.updateStsBat = OFF
+        self.completedCheck = False
     def masterConnectBroker(self):  
         print("Enter master")
         #Create a client to receive the message last will from the drones
@@ -47,10 +48,17 @@ class Master(object):
         
     def masterCheckConnect(self):
         if self.droneConnected < self.droneNumber:
-            # print("DRONE CONNECT={}".format(self.droneConnected))                
+            self.completedCheck = False
+            #print("DRONE CONNECT={}".format(self.droneConnected))                
             custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
             custom_properties.UserProperty = [("typeMsg",MASTERLSTWIL),("droneConnect",str(self.droneConnected))]
             self.Master.Client.publish(topic= DRONE_COM, payload= MASTER_ONLINE,qos=2, properties=custom_properties)
+        elif self.droneConnected == self.droneNumber and self.completedCheck == False:
+            self.completedCheck = True
+            custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
+            custom_properties.UserProperty = [("typeMsg",MASTERLSTWIL),("droneConnect",str(self.droneConnected))]
+            self.Master.Client.publish(topic= DRONE_COM, payload= MASTER_ONLINE,qos=2, properties=custom_properties)
+            
         self.handleResp()
 
     def masterStopConnect(self):

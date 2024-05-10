@@ -91,6 +91,7 @@ class MyWindow(QMainWindow):
         # set icon for application 
         pathIcon = os.path.join(self.dirname, 'Images/icon_drone.png')
         self.setWindowIcon(QtGui.QIcon(pathIcon)) 
+        
 
         # Connect the signal 'textChanged' of QLineEdit to a slot
         self.ui.nrbOfDroneLineEdit.returnPressed.connect(self.updateDroneStatus)
@@ -112,7 +113,7 @@ class MyWindow(QMainWindow):
 
         self.sizeImage = 100
 
-        self.commandList = ["Choose the command","Arm","Takeoff","Land"]       
+        self.commandList = ["Choose the command","Arm","Disarm","Takeoff","Land","Prepare act"]       
         self.ui.commandComboBox.addItems(self.commandList)
 
         self.ShapeList = ["Choose the shape","Circle","Square","straight line"]       
@@ -164,6 +165,7 @@ class MyWindow(QMainWindow):
         else:
             self.typeCmd = ALL 
             self.ui.Drone.setEnabled(False)
+            self.ui.droneNrmControlLineEdit.setEnabled(False)
 
     def DATA_ALL_TYPE(self,CMD, ALT=None, LON=None, LAT=None):
             return {
@@ -190,9 +192,9 @@ class MyWindow(QMainWindow):
         self.payload= {}
         cmd = self.ui.commandComboBox.currentText() 
         if cmd != "Choose the command":
-            alt = self.ui.altValue.text()
-            long = self.ui.longValue.text()
-            lat = self.ui.latValue.text()
+            alt = (self.ui.altValue.text())
+            long = (self.ui.longValue.text())
+            lat = (self.ui.latValue.text())
             if self.typeCmd == ALL:
                 self.payload = self.DATA_ALL_TYPE(cmd,alt,long,lat)
             elif self.typeCmd == UNIT:

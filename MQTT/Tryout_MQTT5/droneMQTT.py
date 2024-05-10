@@ -28,9 +28,6 @@ class droneMQTT(object):
         self.log = Queue()
         self.status = CONNECT_FAILED
 
-
-
-
     def connectBroker(self,prop=None,typeClient=TYPE_CLIENT_NORMAL):
         
         """Connect a client to the broker.
@@ -113,8 +110,8 @@ class droneMQTT(object):
 
     def sendFeedbackInfo(self,lock,targSys,ip):
         with lock:
-            droneMavLink = Mav(targSys=targSys, ip= ip)
-            getBatThread = threading.Thread(target= droneMavLink.recvMsgResp)
+            self.droneMavLink = Mav(targSys=targSys, ip= ip)
+            getBatThread = threading.Thread(target= self.droneMavLink.recvMsgResp)
             getBatThread.start()
             #init the base data when recycle
             idDrone = self.client_id.split(":")[1]
@@ -144,9 +141,8 @@ class droneMQTT(object):
                 #     GPS_Instance =  time.time()
                 #     GPS_update = True
                 #get BAT data after 30 sec
-                if timeInstance - BAT_Instance >= 3:
-                    sysReport["BAT"]["Battery_percent"] = droneMavLink.getValue("BAT")
-                    print("[INFO] Bat=",droneMavLink.getValue("BAT"),"of ID =", idDrone  )
+                if timeInstance - BAT_Instance >= 5:
+                    sysReport["BAT"]["Battery_percent"] = self.droneMavLink.getValue("BAT")
                     BAT_Instance =  time.time()
                     BAT_update = True
                 #send the msg
@@ -157,7 +153,6 @@ class droneMQTT(object):
                     self.Client.loop_start()
                     propFeedback = mqtt_client.Properties(props.PacketTypes.PUBLISH)
                     propFeedback.UserProperty =[("typeMsg",REPORTMSG),("nameDrone",idDrone)]
-                    print("[INFO] ID ={} send FB = {}".format(idDrone, payloadFB))
                     self.Client.publish(topic= DRONE_COM, payload=payloadFB, qos=2,retain=False,properties=propFeedback)
 
 class droneInstance():
@@ -166,17 +161,16 @@ class droneInstance():
         self.droneConnected = 0
         self.masterSts   = MASTER_OFFLINE
         self.sendInit = NOT_SEND_INIT
-
         self.clientRecvMsg = droneMQTT(client_id = "LasWil:" + self.drone)
         thdRevDataFromMaster = threading.Thread(target= self.receive_data, args=(self.clientRecvMsg,DRONE_COM,)) 
         thdRevDataFromMaster.start()
-
         self.clientInit    = droneMQTT(client_id="Init:"+self.drone)
         self.clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
         time.sleep(WAIT_TO_CONNECT)
 
-        # The class to decode command receive from master
-        self.Command = DecodeCommand(self.drone)
+        self.initDecode = False
+        
+        self.onHandleCmd = False
 
     def receive_data(self,Drone:droneMQTT,topic):
         # Initial the Client to receive command 
@@ -191,138 +185,111 @@ class droneInstance():
             message = Drone.queueData.get()
             properties = dict(message.properties.UserProperty)
             if properties['typeMsg'] == CMD: 
+                if self.initDecode == False:
+                    # The class to decode command receive from master
+                    self.DecodeCommand = DecodeCommand(self.drone,self.clientInit.droneMavLink)
+                    self.initDecode = True
                 msg_recv= message.payload.decode()
                 msg_recv_dict = ujson.loads(msg_recv)
-                self.Command.handle(msg_recv_dict)
-
+                print("[DEBUG]{} vs {}".format(self.droneConnected,DRONE_NUMBER))
+                if self.droneConnected == DRONE_NUMBER:
+                    print("[DEBUG] Send data to pymavlink")
+                    handleThread = threading.Thread(target=self.DecodeCommand.handle , args=(msg_recv_dict,))
+                    handleThread.start()
+                    self.onHandleCmd = True
+                    handleThread.join()
+                    self.onHandleCmd = False
                 # msg_recv = msg_recv_dict[self.drone]
                 # timeLog = datetime.now()
                 # time = str(timeLog.hour).zfill(2)+":"+str(timeLog.minute).zfill(
                 #     2)+":"+str(timeLog.second).zfill(2)+"."+str(timeLog.microsecond//10000)
                 # print(f"Received `{msg_recv}` at :'{time}'")
-                # if self.droneConnected == DRONE_NUMBER:
-                #     print("[DEBUG] Send data to pymavlink")
 
             elif properties['typeMsg'] == MASTERLSTWIL: 
-                print("[DEBUG] Master online",end="\r")
                 msgInit= message.payload.decode()
                 self.masterSts = int(msgInit)
                 if self.masterSts == MASTER_OFFLINE:
                     self.droneConnected = 0
                     print("[DEBUG] Master disconnect...")
                     self.sendInit = NOT_SEND_INIT
-                else:
+                elif self.masterSts == MASTER_ONLINE:
+                    print("[DEBUG] Master online",end="\r")
                     self.droneConnected = int(properties["droneConnect"])
             elif properties['typeMsg'] == LSTWILLMSG: 
                 print("[Execute] Handle last will")
                 msgLstWil= message.payload.decode()
+                print("[DEBUG] msgLstWil",msgLstWil)
                 if self.masterSts == MASTER_ONLINE:
                     self.droneConnected += int(msgLstWil) 
                     print("[DEBUG] Drone was connected = ", self.droneConnected)
                 print("[DEBUG] {} disconnected. Waiting connect again... ".format(properties['nameDrone']))
             elif properties['typeMsg'] == INITMSG:              
                 msgInit= message.payload.decode()
+                print("[DEBUG] msgInit",msgInit)
                 if self.masterSts == MASTER_ONLINE:
                     self.droneConnected += int(msgInit) 
                     print("[DEBUG] Drone was connected = ", self.droneConnected)
+
     
 
 class DecodeCommand ():
     #########data transfer to the master will retain as dict form ############
-    def __init__(self,droneId): 
-        #init needed object
-        # self.mavlink = pymavlinkFunction.MAV()
-        # self.GPS = pymavlinkFunction.GPS()
+    def __init__(self,droneId,pixhawk): 
         #init needed variable
+        self.pixhawk = pixhawk
         self.drone = droneId
         self.HANDLE_DATA = None
         self.outputData = None
-    def posReport(self):
-        trial = 0
-        while self.outputData and trial <= MAX_TRIAL:
-            #get the needed pos coordinate of the droene it self
-            self.outputData = self.mavlink.getValue("GPS")
-            self.outputData.update(self.mavlink.getValue("ALT"))
-            trial += 1
-    def sysReport(self,valueType):
-        trial = 0
-        #scan for all the needed value to see what system value the user wanna get
-        while not self.outputData and trial <= MAX_TRIAL:
-            if valueType == "BAT":
-                self.outputData = self.mavlink.getValue("BAT")
-            elif valueType == "SEN":
-                self.outputData = self.mavlink.getValue("SENSOR_STATE")
-            trial += 1
-    ############ CONTROL COMMAND ############
-    ############ GPS AVOIDANCE ############
-    def sendGPSfeedback(self):
-        #take the GPS data first
-        feedbackData = self.GPS.packingData()
-        #pub the data in to the master
-        self.MQTT.connectBroker()
-        time.sleep(WAIT_TO_CONNECT)
-        self.MQTT.publishMsg(self.topic,feedbackData,prop=GPSINFO)
-        self.MQTT.Client.loop_forever()
+        self.firstTime = False
 
     ############ handling function ############
     def handle(self, command):
+        if self.firstTime == False:
+            guided_mode = 4
+            self.pixhawk.setMode(guided_mode)
+            self.firstTime = True
         if command["TYPE"] == ALL:
             #get the command
             self.HANDLE_DATA = command["ALL_CMD"] #this become a dictionary
-            # ############# SYSTEM COMMAND ############
-            # if self.HANDLE_DATA["CMD"] == "POSITION_REPORT":
-            #     self.posReport()
-            # elif self.HANDLE_DATA["CMD"] == "SYSTEM_REPORT":
-            #     self.sysReport(self.HANDLE_DATA["SYS_REPORT"])
             ############# CONTROL COMMAND ############
             if self.HANDLE_DATA["CMD"] == "Arm":
                 print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                # self.mavlink.arm(1)
+                self.pixhawk.arm(1)
+            if self.HANDLE_DATA["CMD"] == "Disarm":
+                print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
+                self.pixhawk.arm(0)
             elif self.HANDLE_DATA["CMD"] == "Takeoff":
                 print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                # self.mavlink.takeoff(self.HANDLE_DATA["ALT"])
+                self.pixhawk.takeoff(int(self.HANDLE_DATA["ALT"]))
             elif self.HANDLE_DATA["CMD"] == "Land":
                 print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                # self.mavlink.land(0,0)
-            # #scan to see if the return feedback command is needed or not
-            # if self.outputData:
-            #     self.MQTT.connectBroker()
-            #     time.sleep(WAIT_TO_CONNECT)
-            #     self.MQTT.publishMsg(self.topic,self.outputData,prop=DRONE_COM)
-            #     self.MQTT.Client.loop_forever()
+                self.firstTime = False
+                self.pixhawk.land(0,0)
+            elif self.HANDLE_DATA["CMD"] == "Prepare act":
+                pass
         elif command["TYPE"] == UNIT:
             self.HANDLE_DATA = command["UNIT_CMD"] #this become a dictionary
             #scan to make sure that the drone is in controlled
             if self.drone in self.HANDLE_DATA["UNIT_SELECTED"]:
-                # ############# SYSTEM COMMAND ############
-                # if CMD == "POSITION_REPORT":
-                #     self.posReport()
-                # elif CMD == "SYSTEM_REPORT":
-                #     self.sysReport(self.HANDLE_DATA["SYS_REPORT"])
                 ############# CONTROL COMMAND ############
                 print("[DEBUG] Drone{} receive unit command".format(self.drone))
                 if self.HANDLE_DATA["CMD"] == "Arm":
                     print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                    # self.mavlink.arm(1)
+                    self.pixhawk.arm(1)
+                elif self.HANDLE_DATA["CMD"] == "Disarm":
+                    print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
+                    self.pixhawk.arm(0)
                 elif self.HANDLE_DATA["CMD"] == "Takeoff":
                     print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
                     print("[DEBUG] Alt= ", self.HANDLE_DATA["ALT"])
-                    # self.mavlink.takeoff(int(self.HANDLE_DATA["ALT"]))
+                    self.pixhawk.takeoff(int(self.HANDLE_DATA["ALT"]))
                 elif self.HANDLE_DATA["CMD"] == "Land":
                     print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
+                    self.firstTime = False
+                    self.pixhawk.land(0,0)
+                elif self.HANDLE_DATA["CMD"] == "Prepare act":
+                    pass
 
-
-#     def __init__(self):
-#         self.MQTT = droneMQTT()
-#         self.Command = DecodeCommand()
-
-#     def execute(self,DICT_DATA):
-#         #start the thread and run the need code
-#         if DICT_DATA:
-#             dataExecuteThread = threading.Thread(target=self.Command.handle(), args=(DICT_DATA))
-#             dataExecuteThread.start()
-#     def report(self):
-#         pass
 
 
 

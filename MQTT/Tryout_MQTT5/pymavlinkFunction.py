@@ -31,6 +31,7 @@ class Mav():
         #setup as the drone is waiting on connect, wait for the confirm heartbeat before doing anything
         self.drone.wait_heartbeat()
         print("Heartbeat from system (system %u component %u)" % (self.drone.target_system, self.drone.target_component))
+        self.wait_drone_ready()
 
     def wait_drone_ready(self):
         #-----------------------------------Wait for the drone to be ready-----------------------------------#
@@ -150,9 +151,7 @@ class Mav():
             if msg != None:
                 if msg.get_srcSystem() == self.targetSys:       
                     self.msg = msg
-                    print("[DEBUG] Receive message from id ={}, src ={}".format(self.ip, self.msg.get_srcSystem()))
             else:
-                print("[DEBUG] msg =", msg)
                 self.msg = None
     #get value
     #user input in a ;ist of data and para user wanna take out
@@ -200,19 +199,3 @@ class Mav():
 
     def setPara(self):
         pass
-# class getFeedbackData():
-#     def __init__(self) -> None:
-#         #set up the connection when the class being create 
-#         self.drone  = mavutil.mavlink_connection('udp:172.30.144.1:14550')
-#         #setup as the drone is waiting on connect, wait for the confirm heartbeat before doing anything
-#         self.drone.wait_heartbeat()
-#         self.mavlink = MAV()
-#     #packing the GPS cooordinate data and ready to be send out 
-#     def GPS(self):
-#         #getting the long lat and alt of the drone itself
-#         output_data = self.mavlink.getValue("ALT")
-#         GPSdata = self.mavlink.getValue("GPS")
-#         return output_data.update(GPSdata)
-#     def BAT(self):
-#         output_msg = self.mavlink.getValue("BAT")
-#         return output_msg
