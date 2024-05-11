@@ -148,11 +148,17 @@ class Mav():
     def recvMsgResp(self):
         while True:        
             msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout = 2)
-            if msg != None:
+            msgGps = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = 2)
+            if msg != None :
                 if msg.get_srcSystem() == self.targetSys:       
                     self.msg = msg
             else:
                 self.msg = None
+            if msgGps != None :
+                if msgGps.get_srcSystem() == self.targetSys:       
+                    self.msgGps = msgGps
+            else:
+                self.msgGps = None
     #get value
     #user input in a ;ist of data and para user wanna take out
     #The function will scan through all the para and get all the info need for the listed para
@@ -176,8 +182,8 @@ class Mav():
             #Scan the data stream and search for GPS coordinate
             if self.msg:
                     #Scan the data and take only lat lon and alt data that needed for the position estimation
-                gps[0]= self.msg.lon
-                gps[1]= self.msg.lat
+                gps[0]= self.msgGps.lon/ 1e7
+                gps[1]= self.msgGps.lat/ 1e7
                 return gps
             else:
                 gps = [None,None]
