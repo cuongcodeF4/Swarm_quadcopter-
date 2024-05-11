@@ -12,6 +12,10 @@ import ujson
 from MainUiSysDrone import MyWindow,MasterInit
 from datetime import datetime
 from pymavlinkFunction import *
+from functions.export_and_plot_shape import export_and_plot_shape
+from functions.trajectories import *
+from functions.create_active_csv import create_active_csv
+import csv
 
 
 class droneMQTT(object):
@@ -134,12 +138,12 @@ class droneMQTT(object):
             while True:
                 #get GPS data after 2 sec
                 timeInstance = time.time()
-                # if timeInstance - GPS_Instance >= 1:
-                #     gps = droneMavLink.getValue("GPS")
-                #     sysReport["GPS"]["LON"] = gps[0]
-                #     sysReport["GPS"]["LAT"] = gps[1]
-                #     GPS_Instance =  time.time()
-                #     GPS_update = True
+                if timeInstance - GPS_Instance >= 1:
+                    gps = self.droneMavLink.getValue("GPS")
+                    sysReport["GPS"]["LON"] = gps[0]
+                    sysReport["GPS"]["LAT"] = gps[1]
+                    GPS_Instance =  time.time()
+                    GPS_update = True
                 #get BAT data after 30 sec
                 if timeInstance - BAT_Instance >= 5:
                     sysReport["BAT"]["Battery_percent"] = self.droneMavLink.getValue("BAT")
@@ -168,9 +172,11 @@ class droneInstance():
         self.clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
         time.sleep(WAIT_TO_CONNECT)
 
-        self.initDecode = False
+        self.initDecode    = False
         
-        self.onHandleCmd = False
+        self.onHandleCmd   = False
+        self.checkGPS = False
+        
 
     def receive_data(self,Drone:droneMQTT,topic):
         # Initial the Client to receive command 
@@ -187,7 +193,7 @@ class droneInstance():
             if properties['typeMsg'] == CMD: 
                 if self.initDecode == False:
                     # The class to decode command receive from master
-                    self.DecodeCommand = DecodeCommand(self.drone,self.clientInit.droneMavLink)
+                    self.DecodeCommand = DecodeCommand(self.drone,self.clientInit.droneMavLink,self.listLatitude,self.listLongitude)
                     self.initDecode = True
                 msg_recv= message.payload.decode()
                 msg_recv_dict = ujson.loads(msg_recv)
@@ -229,21 +235,44 @@ class droneInstance():
                 if self.masterSts == MASTER_ONLINE:
                     self.droneConnected += int(msgInit) 
                     print("[DEBUG] Drone was connected = ", self.droneConnected)
+            
+            elif properties['typeMsg'] == REPORTMSG: 
+                if self.checkGPS == False:
+                    self.listLongitude = [0]*2
+                    self.listLatitude  = [0]*2
+                    self.checkGPS = True
+                try:
+                    msgReport = message.payload.decode()
+                    msgReport = ujson.loads(msgReport)         
+                    idDrone =  int(properties["nameDrone"])
+
+                    # Update value of battery with corresponding id
+                    if msgReport["GPS"]["LON"] != None and msgReport["GPS"]["LAT"] != None :
+                        self.listLongitude[idDrone-1] = int(msgReport["GPS"]["LON"])
+                        self.listLatitude[idDrone-1] = int(msgReport["GPS"]["LAT"])
+
+                    else:
+                        pass
+                except Exception as e:
+                    print("An error occurred when get GPS value:", e)
 
     
 
 class DecodeCommand ():
     #########data transfer to the master will retain as dict form ############
-    def __init__(self,droneId,pixhawk): 
+    def __init__(self,droneId,pixhawk,listLat,listLon): 
         #init needed variable
         self.pixhawk = pixhawk
-        self.drone = droneId
+        self.drone   = droneId
+        self.listLat = listLat
+        self.listLon = listLon
         self.HANDLE_DATA = None
         self.outputData = None
         self.firstTime = False
 
     ############ handling function ############
     def handle(self, command):
+        assert(isinstance(self.pixhawk,Mav))
         if self.firstTime == False:
             guided_mode = 4
             self.pixhawk.setMode(guided_mode)
@@ -267,6 +296,32 @@ class DecodeCommand ():
                 self.pixhawk.land(0,0)
             elif self.HANDLE_DATA["CMD"] == "Prepare act":
                 pass
+            elif self.HANDLE_DATA["CMD"] == "Circle":
+                idDrone = int(self.drone)
+                if idDrone == 1:
+                    print("[INFO] Arming the drone...")
+                    self.pixhawk.arm(1)
+                    print("[INFO] Taking off...")
+                    self.pixhawk.takeoff(int(self.HANDLE_DATA["ALT"]))
+                else:
+                    print("[INFO] Arming the drone...")
+                    self.pixhawk.arm(1)
+                    print("[INFO] Taking off...")
+                    self.pixhawk.takeoff(int(self.HANDLE_DATA["ALT"]))
+                    diameter = int(self.HANDLE_DATA["PARA"])
+                    alt      = int(self.HANDLE_DATA["ALT"])
+                    # print("[DEBUG] List Lat",self.listLat)
+                    # print("[DEBUG] List Lon",self.listLon)
+                    # print("lat1 = {} , lon1 ={} , lat2={} , lon2= {}".format(self.listLat[0],self.listLon[0],self.listLat[idDrone-1],self.listLon[idDrone-1]))
+                    distanceDrones = self.distance(self.listLat[0],self.listLon[0],self.listLat[idDrone-1],self.listLon[idDrone-1]) 
+                    print("[DEBUG] Distance:", distanceDrones)     
+                    # Create csv file to store parameter of each trajectory
+                    self.creatorCsv(shapeName="Circle", diameterCir= diameter,alt=alt,distance=30)
+                    #Add condition to perform this cmd 
+                    waypoints_list, yaw = self.readWaypoints("shapes/active.csv")
+                    print("[INFO] Performing the mission...")
+                    self.pixhawk.performMission(waypoints_list, yaw)
+                 
         elif command["TYPE"] == UNIT:
             self.HANDLE_DATA = command["UNIT_CMD"] #this become a dictionary
             #scan to make sure that the drone is in controlled
@@ -289,6 +344,62 @@ class DecodeCommand ():
                     self.pixhawk.land(0,0)
                 elif self.HANDLE_DATA["CMD"] == "Prepare act":
                     pass
+    def readWaypoints(self,path_to_csv):
+        #-----------------------------------Read the waypoints from the CSV file-----------------------------------#
+        print("[INFO] Reading waypoints from the CSV file...")
+        waypoints_list = []
+        with open(path_to_csv, newline="") as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                t = float(row["t"])
+                px = float(row["px"])
+                py = float(row["py"])
+                pz = float(row["pz"])
+                vx = float(row["vx"])
+                vy = float(row["vy"])
+                vz = float(row["vz"])
+                yaw = float(row["yaw"])
+                waypoints_list.append((t, px, py, pz, vx, vy, vz))
+        return waypoints_list, yaw
+    def creatorCsv(self,shapeName,diameterCir,alt,distance,posXMaster=0,posYMaster=0):
+        num_repeats = 1
+        shape_name=shapeName
+        diameter = diameterCir
+        direction = 1
+        maneuver_time = 60.0
+        start_x = diameterCir/2 - distance
+        start_y = posYMaster
+        initial_altitude = alt
+        move_speed = 2.0  # m/s
+        hold_time = 4.0 #s
+        step_time = 0.05 #s
+        output_file = "shapes/active.csv"
+
+        create_active_csv(
+            shape_name=shape_name,
+            num_repeats=num_repeats,
+            diameter=diameter,
+            direction=direction,
+            maneuver_time=maneuver_time,
+            start_x=start_x,
+            start_y=start_y,
+            initial_altitude=initial_altitude,
+            move_speed = move_speed,
+            hold_time = hold_time,
+            step_time = step_time,
+            output_file = output_file,
+        )
+
+
+    def distance(self,lat1, lon1, lat2, lon2):
+        R = 6371.0  
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = math.sin(dlat / 2) * math.sin(dlat / 2) + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) * math.sin(dlon / 2)
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        distance = R *c*1000    # uint m
+        print("dlat = {} , dlon ={} , a={} , c= {}".format(dlat,dlon,a,c))
+        return distance
 
 
 

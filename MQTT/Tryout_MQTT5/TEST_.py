@@ -1,34 +1,11 @@
-import threading
-import time
+import math
+def distance(lat1, lon1, lat2, lon2):
+        R = 6371.0  
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = math.sin(dlat / 2) * math.sin(dlat / 2) + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) * math.sin(dlon / 2)
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        distance = R *c*1000    # uint m
+        return distance
 
-# Biến cờ để kiểm tra khi nào thoát khỏi luồng
-exit_flag = False
-
-def thread_function_1():
-    for i in range(5):
-        print("Thread 1 is running")
-        time.sleep(1)
-
-def thread_function_2():
-    global exit_flag
-    for i in range(5):
-        print("Thread 2 is running")
-        if i == 3:
-            exit_flag = True  # Đặt cờ để thoát khỏi luồng
-            break
-        time.sleep(1)
-
-if __name__ == "__main__":
-    # Tạo các đối tượng thread
-    thread1 = threading.Thread(target=thread_function_1)
-    thread2 = threading.Thread(target=thread_function_2)
-
-    # Bắt đầu thực thi các luồng
-    thread1.start()
-    thread2.start()
-    print("A")
-    # Đợi cho tất cả các luồng kết thúc
-    thread1.join()
-    thread2.join()
-
-    print("Main thread ends")
+print(distance(-35,149,-35,149))

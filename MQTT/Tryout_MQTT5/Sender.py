@@ -144,15 +144,14 @@ class Master(object):
                                 self.updateStsBat = ON
                         except:
                             pass
-                        self.listBattery[idDrone-1] = int(msgReport["BAT"]["Battery_percent"])
-                        
+                        self.listBattery[idDrone-1] = int(msgReport["BAT"]["Battery_percent"])                    
                     else:
                         self.listBattery[idDrone-1] = 0
                         if idDrone not in self.pixhawkConnectList:
                             self.pixhawkConnectList.append(idDrone)
                             self.FcConnectStatus = True
                 except Exception as e:
-                    print("An error occurred:", e)
+                    print("An error occurred when get Battery value:", e)
                     
 
 

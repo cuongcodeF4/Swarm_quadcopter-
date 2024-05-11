@@ -108,7 +108,6 @@ class MyWindow(QMainWindow):
         #payload to send 
         self.payload = {}
 
-        self.listCmd = []
         self.typeCmd = ALL
 
         self.sizeImage = 100
@@ -122,6 +121,7 @@ class MyWindow(QMainWindow):
         self.typeList = ["All Drones","One Drone"]       
         self.ui.typeControlComboBox.addItems(self.typeList)
         self.ui.typeControlComboBox.activated.connect(self.enableSelectDrone)
+        self.ui.shapeComboBox.activated.connect(self.enableCommandMission)
         # self.ui.commandComboBox.activated.connect(self.addCommand)
         self.ui.startMaster.clicked.connect(self.runMaster)
         self.ui.stopMaster.clicked.connect(self.stopMaster)
@@ -166,46 +166,62 @@ class MyWindow(QMainWindow):
             self.typeCmd = ALL 
             self.ui.Drone.setEnabled(False)
             self.ui.droneNrmControlLineEdit.setEnabled(False)
+        
+    def enableCommandMission(self):
+        shapeCmdEnable = self.ui.shapeComboBox.currentText()
+        if shapeCmdEnable == "Choose the shape":
+            self.ui.command.setEnabled(True)
+            self.ui.commandComboBox.setEnabled(True)
+        else:
+            self.ui.command.setEnabled(False)
+            self.ui.commandComboBox.setEnabled(False)
 
-    def DATA_ALL_TYPE(self,CMD, ALT=None, LON=None, LAT=None):
+            
+
+    def DATA_ALL_TYPE(self,CMD, PARA=10, ALT=None, LON=None, LAT=None):
             return {
                 "TYPE" : ALL,
                 "ALL_CMD" : {
                     "CMD" : CMD,
+                    "PARA": PARA,
                     "ALT" : ALT,
                     "LON" : LON,
                     "LAT" : LAT}
             }
-    def DATA_UNIT_TYPE(self,UNIT_SELECTED, CMD, ALT=None, LON=None, LAT=None):    
+    def DATA_UNIT_TYPE(self,UNIT_SELECTED, CMD, PARA=10, ALT=None, LON=None, LAT=None):    
             return {
                 "TYPE" : UNIT,
                 "UNIT_CMD" : {
                     "UNIT_SELECTED" : UNIT_SELECTED,
                         "CMD" : CMD,
+                        "PARA": PARA,
                         "ALT" : ALT,
                         "LON" : LON,
                         "LAT" : LAT
                         }
                     }
     def addCommand(self):
-        self.listCmd= []
         self.payload= {}
-        cmd = self.ui.commandComboBox.currentText() 
-        if cmd != "Choose the command":
-            alt = (self.ui.altValue.text())
-            long = (self.ui.longValue.text())
-            lat = (self.ui.latValue.text())
-            if self.typeCmd == ALL:
-                self.payload = self.DATA_ALL_TYPE(cmd,alt,long,lat)
-            elif self.typeCmd == UNIT:
-                droneSelected = self.ui.droneNrmControlLineEdit.text()
-                self.payload = self.DATA_UNIT_TYPE(droneSelected,cmd,alt,long,lat)
+        if self.ui.shapeComboBox.currentText() == "Choose the shape" : 
+            cmd = self.ui.commandComboBox.currentText() 
+            if cmd != "Choose the command":
+                alt = (self.ui.altValue.text())
+                long = (self.ui.longValue.text())
+                lat = (self.ui.latValue.text())
+                para = None
+                if self.typeCmd == ALL:
+                    self.payload = self.DATA_ALL_TYPE(cmd,para,alt,long,lat)
+                elif self.typeCmd == UNIT:
+                    droneSelected = self.ui.droneNrmControlLineEdit.text()
+                    self.payload = self.DATA_UNIT_TYPE(droneSelected,cmd,para,alt,long,lat)
+        else:
+            cmd   =  self.ui.shapeComboBox.currentText()
+            para  =  self.ui.paraValue.text()
+            alt   =  self.ui.altValue.text()
+            long  =  self.ui.longValue.text()
+            lat   =  self.ui.latValue.text()
+            self.payload = self.DATA_ALL_TYPE(cmd,para,alt,long,lat)
 
-            # for _ in range(self.num_drones):
-            #     self.listCmd.append(cmd)
-            # for drone in range(self.num_drones):
-            #     self.payload[f"{drone+1}"] = self.listCmd[drone]
-            #     print("[DEBUG] Payload",self.payload )      
     def sendCommand(self):
         self.addCommand()
         if self.run ==1:
@@ -217,7 +233,6 @@ class MyWindow(QMainWindow):
     def updateDroneStatus(self):
         self.ui.commandComboBox.setCurrentIndex(0)
         checkSize    = False
-        self.listCmd= []
         self.payload= {}
         # asymmetrical = False
 
@@ -394,7 +409,6 @@ class MyWindow(QMainWindow):
             label.setPixmap(scaled_pixmapOn)
             label.setVisible(True)
             self.drone_labels.append(label)
-        
 
     def printLog(self,type,log):
         timeLog = datetime.now()
