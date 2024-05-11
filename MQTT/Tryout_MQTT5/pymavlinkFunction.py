@@ -28,15 +28,16 @@ class MAV():
         print("Heartbeat from system (system %u component %u)" % (self.drone.target_system, self.drone.target_component))
 
     def checkACK(self):
-        while True:
-            msg = self.drone.wait_for_message(
-                MAVLINK_MSG_ID_DO_ACKNOWLEDGE, timeout=1.0)
-            if msg:
-                #if msg send successfully
+        #wait to see if the matching message was present in the data stream
+        ACK = self.drone.wait_for_message(MAVLINK_MSG_ID_DO_ACKNOWLEDGE, timeout=1.0)
+        if ACK:
+            #there is matching message in the data stream and it ready to be read out
+            ACK = self.drone.recvmsg().get_payload()[1]
+            #confirm that command was sent to ardupilot
+            if ACK == mavutil.mavlink.MAV_RESULT_ACCEPTED:
                 return True
-            else: 
+            else:
                 return False
-            data = self.drone.recv_match(type='', blocking=True, timeout  = timeout)
 
     #take off func
     def takeoff(self, altitude):
@@ -54,7 +55,24 @@ class MAV():
             0, 
             altitude
         )
-        return self.checkACK()
+        #ACK handle
+        #check to see if the command was send successful
+        #scan for the ACK msg
+        #what if the drone never reach the wanted high? 
+        ACK_check = self.drone.wait_for_message(MAVLINK_MSG_ID_DO_ACKNOWLEDGE, timeout = 1)
+        if ACK_check:
+            ACK_check = self.drone.recv_msg().get_payload()[1]
+            if ACK_check == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+                while True:
+                    #check for alt
+                    instance_ALT = self.getValue("ALT")
+                    if  altitude - 0.1 < instance_ALT < altitude + 0.1:
+                        #send ACK bit
+                        ACK  = True
+                        break
+                    else:
+                        ACK =  False
+        return ACK
     
     #Arm func
     def arm(self, state):
@@ -72,6 +90,7 @@ class MAV():
             0, 
             0
         )
+        return self.checkACK()
     
     #Setmode func
     def setMode(self, mode):
@@ -89,6 +108,7 @@ class MAV():
             0, 
             0
         )
+        return self.checkACK()
     #land mode
     def land(self, decentSpeed, maxDecentAngle):
         self.drone.mav.command_long_send(
@@ -104,7 +124,60 @@ class MAV():
             0, 
             0
         )
+        #ACK handle
+        #check to see if the command was send successful
+        #scan for the ACK msg
+        #what if the drone never reach the wanted high? 
+        ACK_check = self.drone.wait_for_message(MAVLINK_MSG_ID_DO_ACKNOWLEDGE, timeout = 1)
+        if ACK_check:
+            ACK_check = self.drone.recv_msg().get_payload()[1]
+            if ACK_check == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+                while True:
+                    #check for alt
+                    instance_ALT = self.getValue("ALT")
+                    if instance_ALT < 0.1:
+                        #send ACK bit
+                        ACK  = True
+                        break
+                    else:
+                        ACK =  False
+        return ACK
+        return ACK
 
+    #RTL mode
+    def RTL(self):
+        self.drone.mav.command_long_send(
+            self.drone.target_system,
+            self.drone.target_component,
+            mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH,
+            0, 
+            0, 
+            0, 
+            0, 
+            0, 
+            0, 
+            0, 
+            0
+        )
+        #ACK handle
+        #check to see if the command was send successful
+        #scan for the ACK msg
+        #what if the drone never reach the wanted high? 
+        ACK_check = self.drone.wait_for_message(MAVLINK_MSG_ID_DO_ACKNOWLEDGE, timeout = 1)
+        if ACK_check:
+            ACK_check = self.drone.recv_msg().get_payload()[1]
+            if ACK_check == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+                while True:
+                    #check for alt
+                    instance_ALT = self.getValue("ALT")
+                    if instance_ALT < 0.1:
+                        #send ACK bit
+                        ACK  = True
+                        break
+                    else:
+                        ACK =  False
+        return ACK
+    
     #get value
     #user input in a ;ist of data and para user wanna take out
     #The function will scan through all the para and get all the info need for the listed para
@@ -118,9 +191,8 @@ class MAV():
         # ALT func 
         if "ALT"  == param:
             while True:
-                timeout  = time.time() + 2
                 #continouslt listen dor messages with a 2 - second timeout 
-                msg = self.drone.recv_match(type='ALTITUDE', blocking=True, timeout  = timeout)
+                msg = self.drone.recv_match(type='ALTITUDE', blocking=True)
                 if msg:
                     #get only the needed data for the need of using
                     output_msg = {
@@ -136,10 +208,8 @@ class MAV():
         if "GPS" == param :
             #Scan the data stream and search for GPS coordinate
             while True:
-                #get the abs timeout time by using real time in the instant of the code occur
-                timeout = time.time() + 2
                 # Continuously listen for messages with a 2-second timeout
-                msg = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = timeout)
+                msg = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
                 if msg:
                     #Scan the data and take only lat lon and alt data that needed for the position estimation
                     output_msg = {
@@ -156,9 +226,8 @@ class MAV():
         # Battery check up func
         if "BAT" == param :
             while True:
-                timeout  = time.time() + 2
                 #continouslt listen dor messages with a 2 - second timeout 
-                msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout  = timeout)
+                msg = self.drone.recv_match(type='SYS_STATUS', blocking=True)
                 if msg:
                     #get only the needed data for the need of using
                     output_msg = {
@@ -172,9 +241,8 @@ class MAV():
                     break
         if "SENSOR_STATE" == param:
             while True:
-                timeout  = time.time() + 2
                 #continouslt listen dor messages with a 2 - second timeout 
-                msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout  = timeout)
+                msg = self.drone.recv_match(type='SYS_STATUS', blocking=True)
                 if msg:
                     #get only the needed data for the need of using
                     output_msg = {
