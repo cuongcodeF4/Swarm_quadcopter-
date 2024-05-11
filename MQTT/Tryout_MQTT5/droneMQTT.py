@@ -183,25 +183,8 @@ class decodeCommand ():
         self.HANDLE_DATA = None
         self.droneID = droneID
         self.outputData = None
-
-    #def posReport(self):
-    #    trial = 0
-    #    while not self.outputData and trial <= MAX_TRIAL:
-    #        #get the needed pos coordinate of the droene it self
-    #        self.outputData = self.mavlink.getValue("GPS")
-    #        self.outputData.update(self.mavlink.getValue("ALT"))
-    #        trial += 1
-    #def sysReport(self,valueType):
-    #    trial = 0
-    #    #scan for all the needed value to see what system value the user wanna get
-    #    while not self.outputData and trial <= MAX_TRIAL:
-    #        if valueType == "BAT":
-    #            self.outputData = self.mavlink.getValue("BAT")
-    #        elif valueType == "SEN":
-    #            self.outputData = self.mavlink.getValue("SENSOR_STATE")
-    #        trial += 1
     ############ CONTROL COMMAND ############
-
+    #leave this for later use
     ############ handling function ############
     def handle(self, command):
         if command["TYPE"] == ALL:
@@ -269,6 +252,9 @@ def sendFeedbackInfo(droneID):
             propFeedback.UserProperty =[("typeMsg",FBINFO),("nameDrone",droneID)]
             mqtt_client.Client(droneID,protocol=5).publish(topic= DRONE_COM, payload=sysReport, qos=2,retain=False,properties=propFeedback)
             mqtt_client.Client(droneID,protocol=5).loop_stop()
+            #reset the scanned bit
+            BAT_update = False
+            GPS_update = False
         
 
 

@@ -29,8 +29,14 @@ class MAV():
 
     def checkACK(self):
         while True:
-            msg = self.drone.recv_match(type= "COMMAND_ACK",blocking = True)
-            print(msg)
+            msg = self.drone.wait_for_message(
+                MAVLINK_MSG_ID_DO_ACKNOWLEDGE, timeout=1.0)
+            if msg:
+                #if msg send successfully
+                return True
+            else: 
+                return False
+            data = self.drone.recv_match(type='', blocking=True, timeout  = timeout)
 
     #take off func
     def takeoff(self, altitude):
@@ -48,6 +54,7 @@ class MAV():
             0, 
             altitude
         )
+        return self.checkACK()
     
     #Arm func
     def arm(self, state):
