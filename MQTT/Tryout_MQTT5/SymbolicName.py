@@ -7,6 +7,7 @@ CONTROL_COM = "topicControlCom"
 LSTWILLMSG = "LastWillMessageType"
 INITMSG = "InitMessageType"
 REPORTMSG = "SystemReportMessageType"
+YAWVALUE = "YawValueMessageType"
 CMD        = "CommandType"
 
 

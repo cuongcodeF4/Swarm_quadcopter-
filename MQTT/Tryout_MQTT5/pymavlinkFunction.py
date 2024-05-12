@@ -184,6 +184,7 @@ class Mav():
                     #Scan the data and take only lat lon and alt data that needed for the position estimation
                 gps[0]= self.msgGps.lon/ 1e7
                 gps[1]= self.msgGps.lat/ 1e7
+
                 return gps
             else:
                 gps = [None,None]
@@ -197,9 +198,16 @@ class Mav():
                 
             else:
                 return None
-        if "SENSOR_STATE" == param:
+        elif "SENSOR_STATE" == param:
             if self.msg:
                 return self.msg.onboard_control_sensors_health
+            else:
+                return None
+        elif param == "YAW":
+            msg = self.drone.recv_match(type='ATTITUDE', blocking=True, timeout = 5)
+            # Extract yaw value from the ATTITUDE message
+            if msg:
+                return msg.yaw
             else:
                 return None
 

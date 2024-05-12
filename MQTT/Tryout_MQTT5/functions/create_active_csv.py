@@ -369,8 +369,8 @@ def create_active_csv(shape_name,num_repeats, diameter, direction, maneuver_time
         last_step = 0
         last_coordinates = (0, 0, -1*initial_altitude)
 
-        # Call the hold_position function after the climb
-        last_time, last_step, last_coordinates = hold_position(hold_time, step_time, writer, last_time, last_step, last_coordinates,mode = 20)
+        # # Call the hold_position function after the climb
+        # last_time, last_step, last_coordinates = hold_position(hold_time, step_time, writer, last_time, last_step, last_coordinates,mode = 20)
 
         # Initialize start coordinates
         start_coordinates = (start_x, start_y, -1*initial_altitude)

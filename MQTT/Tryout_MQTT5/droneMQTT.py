@@ -128,7 +128,8 @@ class droneMQTT(object):
                             "Client_ID" : idDrone,
                             "LON" : None,
                             "LAT" : None,
-                                }
+                                },
+                        "YAW" : None
                         }
 
             GPS_Instance = time.time()
@@ -171,11 +172,10 @@ class droneInstance():
         self.clientInit    = droneMQTT(client_id="Init:"+self.drone)
         self.clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
         time.sleep(WAIT_TO_CONNECT)
-
-        self.initDecode    = False
-        
+        self.initDecode    = False 
         self.onHandleCmd   = False
         self.checkGPS = False
+        self.yawMainDrone = 0 
         
 
     def receive_data(self,Drone:droneMQTT,topic):
@@ -193,7 +193,7 @@ class droneInstance():
             if properties['typeMsg'] == CMD: 
                 if self.initDecode == False:
                     # The class to decode command receive from master
-                    self.DecodeCommand = DecodeCommand(self.drone,self.clientInit.droneMavLink,self.listLatitude,self.listLongitude)
+                    self.DecodeCommand = DecodeCommand(self.drone,self.clientInit,self.clientInit.droneMavLink,self.listLatitude,self.listLongitude)
                     self.initDecode = True
                 msg_recv= message.payload.decode()
                 msg_recv_dict = ujson.loads(msg_recv)
@@ -255,14 +255,16 @@ class droneInstance():
                         pass
                 except Exception as e:
                     print("An error occurred when get GPS value:", e)
-
-    
+            elif properties['typeMsg'] == YAWVALUE: 
+                msgYaw= message.payload.decode()
+                self.yawMainDrone = round(float(msgYaw),2)
 
 class DecodeCommand ():
     #########data transfer to the master will retain as dict form ############
-    def __init__(self,droneId,pixhawk,listLat,listLon): 
+    def __init__(self,droneId,clientPub,pixhawk,listLat,listLon): 
         #init needed variable
         self.pixhawk = pixhawk
+        self.clientPub = clientPub
         self.drone   = droneId
         self.listLat = listLat
         self.listLon = listLon
@@ -303,22 +305,32 @@ class DecodeCommand ():
                     self.pixhawk.arm(1)
                     print("[INFO] Taking off...")
                     self.pixhawk.takeoff(float(self.HANDLE_DATA["ALT"]))
+                    yawDroneMain = self.pixhawk.getValue("YAW")
+                    assert(isinstance(self.clientPub,droneMQTT))
+                    self.clientPub.Client.loop_start()
+                    propFeedback = mqtt_client.Properties(props.PacketTypes.PUBLISH)
+                    propFeedback.UserProperty =[("typeMsg",YAWVALUE),("nameDrone",idDrone)]
+                    self.clientPub.Client.publish(topic= DRONE_COM, payload=str(yawDroneMain), qos=2,retain=False,properties=propFeedback)
                 else:
-                    print("[INFO] Arming the drone...")
-                    self.pixhawk.arm(1)
-                    print("[INFO] Taking off...")
-                    self.pixhawk.takeoff(float(self.HANDLE_DATA["ALT"]))
                     diameter = float(self.HANDLE_DATA["PARA"])
                     alt      = float(self.HANDLE_DATA["ALT"])
-                    # print("[DEBUG] List Lat",self.listLat)
-                    # print("[DEBUG] List Lon",self.listLon)
-                    # print("lat1 = {} , lon1 ={} , lat2={} , lon2= {}".format(self.listLat[0],self.listLon[0],self.listLat[idDrone-1],self.listLon[idDrone-1]))
+                    print("[DEBUG] List Lat",self.listLat)
+                    print("[DEBUG] List Lon",self.listLon)
                     distanceDrones = self.distance(self.listLat[0],self.listLon[0],self.listLat[idDrone-1],self.listLon[idDrone-1]) 
-                    print("[DEBUG] Distance:", distanceDrones)     
+                    yaw  = self.calculateYaw(self.listLat[0],self.listLon[0],self.listLat[idDrone-1],self.listLon[idDrone-1])
+                    print("[DEBUG] Distance:", distanceDrones)  
+                    print("[DEBUG] yaw:", yaw)  
                     # Create csv file to store parameter of each trajectory
                     self.creatorCsv(shapeName="Circle", diameterCir= diameter,alt=alt,distance=round(distanceDrones,0))
                     #Add condition to perform this cmd 
                     waypoints_list, yaw = self.readWaypoints("shapes/active.csv")
+
+                    print("[INFO] Arming the drone...")
+                    self.pixhawk.arm(1)
+                    print("[INFO] Taking off...")
+                    self.pixhawk.takeoff(float(self.HANDLE_DATA["ALT"]))
+                    time.sleep(3)
+                    
                     print("[INFO] Performing the mission...")
                     self.pixhawk.performMission(waypoints_list, yaw)
                  
@@ -393,12 +405,43 @@ class DecodeCommand ():
 
     def distance(self,lat1, lon1, lat2, lon2):
         R = 6371.0  
-        dlat = math.radians(lat2 - lat1)
-        dlon = math.radians(lon2 - lon1)
-        a = math.sin(dlat / 2) * math.sin(dlat / 2) + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) * math.sin(dlon / 2)
+        dLat = math.radians(lat2 - lat1)
+        dLon = math.radians(lon2 - lon1)
+        a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon / 2) * math.sin(dLon / 2)
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         distance = R *c*1000    # uint m
         return distance
+    
+    def calculateYaw(self,lat1, lon1, lat2, lon2):
+        latDis = self.distance(lat1, lon2, lat2, lon2)
+        lonDis = self.distance(lat2, lon1, lat2, lon2)
+
+        #scan to see which quater the second drone belong
+        if (lon2) > (lon1):
+        #it's on the upper side
+            if (lat2) > (lat1):
+                quarter = 1
+            else:
+                quarter = 4
+        else:
+            if (lat2) > (lat1):
+                quarter = 2
+            else:
+                quarter = 3
+        #output the yaw angle
+        alpha = math.degrees(math.atan(lonDis/latDis))
+        if quarter  == 1:
+            yaw_angle = -(180-alpha) 
+        elif quarter == 2:
+            yaw_angle = 180-alpha
+        elif quarter == 3:
+            yaw_angle = alpha
+        else:
+            yaw_angle = -alpha
+        return round((yaw_angle),0)
+
+        
+
 
 
 
