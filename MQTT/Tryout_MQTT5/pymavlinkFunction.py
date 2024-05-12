@@ -180,7 +180,7 @@ class Mav():
         elif "GPS" == param :
             gps = [0]*2
             #Scan the data stream and search for GPS coordinate
-            if self.msg:
+            if self.msgGps:
                     #Scan the data and take only lat lon and alt data that needed for the position estimation
                 gps[0]= self.msgGps.lon/ 1e7
                 gps[1]= self.msgGps.lat/ 1e7
