@@ -248,8 +248,8 @@ class droneInstance():
 
                     # Update value of battery with corresponding id
                     if msgReport["GPS"]["LON"] != None and msgReport["GPS"]["LAT"] != None :
-                        self.listLongitude[idDrone-1] = int(msgReport["GPS"]["LON"])
-                        self.listLatitude[idDrone-1] = int(msgReport["GPS"]["LAT"])
+                        self.listLongitude[idDrone-1] = float(msgReport["GPS"]["LON"])
+                        self.listLatitude[idDrone-1] = float(msgReport["GPS"]["LAT"])
 
                     else:
                         pass
@@ -289,7 +289,7 @@ class DecodeCommand ():
                 self.pixhawk.arm(0)
             elif self.HANDLE_DATA["CMD"] == "Takeoff":
                 print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                self.pixhawk.takeoff(int(self.HANDLE_DATA["ALT"]))
+                self.pixhawk.takeoff(float(self.HANDLE_DATA["ALT"]))
             elif self.HANDLE_DATA["CMD"] == "Land":
                 print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
                 self.firstTime = False
@@ -302,21 +302,21 @@ class DecodeCommand ():
                     print("[INFO] Arming the drone...")
                     self.pixhawk.arm(1)
                     print("[INFO] Taking off...")
-                    self.pixhawk.takeoff(int(self.HANDLE_DATA["ALT"]))
+                    self.pixhawk.takeoff(float(self.HANDLE_DATA["ALT"]))
                 else:
                     print("[INFO] Arming the drone...")
                     self.pixhawk.arm(1)
                     print("[INFO] Taking off...")
-                    self.pixhawk.takeoff(int(self.HANDLE_DATA["ALT"]))
-                    diameter = int(self.HANDLE_DATA["PARA"])
-                    alt      = int(self.HANDLE_DATA["ALT"])
+                    self.pixhawk.takeoff(float(self.HANDLE_DATA["ALT"]))
+                    diameter = float(self.HANDLE_DATA["PARA"])
+                    alt      = float(self.HANDLE_DATA["ALT"])
                     # print("[DEBUG] List Lat",self.listLat)
                     # print("[DEBUG] List Lon",self.listLon)
                     # print("lat1 = {} , lon1 ={} , lat2={} , lon2= {}".format(self.listLat[0],self.listLon[0],self.listLat[idDrone-1],self.listLon[idDrone-1]))
                     distanceDrones = self.distance(self.listLat[0],self.listLon[0],self.listLat[idDrone-1],self.listLon[idDrone-1]) 
                     print("[DEBUG] Distance:", distanceDrones)     
                     # Create csv file to store parameter of each trajectory
-                    self.creatorCsv(shapeName="Circle", diameterCir= diameter,alt=alt,distance=30)
+                    self.creatorCsv(shapeName="Circle", diameterCir= diameter,alt=alt,distance=round(distanceDrones,0))
                     #Add condition to perform this cmd 
                     waypoints_list, yaw = self.readWaypoints("shapes/active.csv")
                     print("[INFO] Performing the mission...")
@@ -398,7 +398,6 @@ class DecodeCommand ():
         a = math.sin(dlat / 2) * math.sin(dlat / 2) + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) * math.sin(dlon / 2)
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         distance = R *c*1000    # uint m
-        print("dlat = {} , dlon ={} , a={} , c= {}".format(dlat,dlon,a,c))
         return distance
 
 
