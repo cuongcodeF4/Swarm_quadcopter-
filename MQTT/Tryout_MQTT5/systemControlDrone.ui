@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1165</width>
+    <width>1015</width>
     <height>920</height>
    </rect>
   </property>
@@ -44,7 +44,7 @@
          <property name="frameShadow">
           <enum>QFrame::Plain</enum>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0,4">
+         <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0,0,4">
           <item>
            <widget class="QLabel" name="label_17">
             <property name="sizePolicy">
@@ -67,6 +67,24 @@
             </property>
             <property name="pixmap">
              <pixmap>C:/Users/ADMIN/OneDrive - Unicorn/Download/drone-swarm-128.webp</pixmap>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="font">
+             <font>
+              <family>Times New Roman</family>
+              <pointsize>14</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>MASTER</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -217,7 +235,7 @@
                 <bool>false</bool>
                </property>
                <property name="text">
-                <string>Start Master</string>
+                <string>START</string>
                </property>
               </widget>
              </item>
@@ -344,7 +362,7 @@
                 <bool>false</bool>
                </property>
                <property name="text">
-                <string>Stop Master</string>
+                <string>STOP</string>
                </property>
               </widget>
              </item>
@@ -409,7 +427,7 @@
           <enum>QFrame::Plain</enum>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,3,4">
-          <item>
+          <item alignment="Qt::AlignHCenter">
            <widget class="QLabel" name="Title">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -429,7 +447,7 @@
              <enum>Qt::LeftToRight</enum>
             </property>
             <property name="text">
-             <string>SYSTEM CONTROL SWARM DRONE</string>
+             <string>SWARM DRONE CONTROL SYSTEM</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -469,80 +487,6 @@
              <enum>QFrame::Raised</enum>
             </property>
             <layout class="QGridLayout" name="gridLayout">
-             <item row="0" column="1">
-              <widget class="QLineEdit" name="nrbOfDroneLineEdit">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-                 <horstretch>1</horstretch>
-                 <verstretch>1</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>260</width>
-                 <height>35</height>
-                </size>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="typeControl">
-               <property name="font">
-                <font>
-                 <family>Times New Roman</family>
-                 <pointsize>12</pointsize>
-                 <weight>75</weight>
-                 <bold>true</bold>
-                </font>
-               </property>
-               <property name="text">
-                <string>Type control:</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="nbrDrone">
-               <property name="font">
-                <font>
-                 <family>Times New Roman</family>
-                 <pointsize>12</pointsize>
-                 <weight>75</weight>
-                 <bold>true</bold>
-                </font>
-               </property>
-               <property name="text">
-                <string>Number of drone:</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QComboBox" name="typeControlComboBox">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-                 <horstretch>1</horstretch>
-                 <verstretch>1</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>260</width>
-                 <height>35</height>
-                </size>
-               </property>
-               <property name="font">
-                <font>
-                 <family>Times New Roman</family>
-                 <pointsize>10</pointsize>
-                </font>
-               </property>
-               <property name="editable">
-                <bool>true</bool>
-               </property>
-               <property name="currentText">
-                <string> All drone</string>
-               </property>
-              </widget>
-             </item>
              <item row="0" column="2" rowspan="2">
               <widget class="QFrame" name="frame_4">
                <property name="frameShape">
@@ -598,6 +542,80 @@
                </layout>
               </widget>
              </item>
+             <item row="0" column="1">
+              <widget class="QLineEdit" name="nrbOfDroneLineEdit">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+                 <horstretch>1</horstretch>
+                 <verstretch>1</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>260</width>
+                 <height>35</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="typeControlComboBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+                 <horstretch>1</horstretch>
+                 <verstretch>1</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>260</width>
+                 <height>35</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Times New Roman</family>
+                 <pointsize>10</pointsize>
+                </font>
+               </property>
+               <property name="editable">
+                <bool>true</bool>
+               </property>
+               <property name="currentText">
+                <string> All drone</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="typeControl">
+               <property name="font">
+                <font>
+                 <family>Times New Roman</family>
+                 <pointsize>12</pointsize>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Type control       :</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="nbrDrone">
+               <property name="font">
+                <font>
+                 <family>Times New Roman</family>
+                 <pointsize>12</pointsize>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Number of drone:</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>
@@ -618,13 +636,16 @@
             <property name="font">
              <font>
               <family>Times New Roman</family>
-              <pointsize>12</pointsize>
-              <weight>75</weight>
-              <bold>true</bold>
+              <pointsize>10</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
              </font>
             </property>
+            <property name="autoFillBackground">
+             <bool>false</bool>
+            </property>
             <property name="title">
-             <string>Control</string>
+             <string>CONTROL</string>
             </property>
             <layout class="QGridLayout" name="gridLayout_2" rowstretch="1,0,0,0,0,0">
              <item row="1" column="3">
@@ -695,13 +716,13 @@
                <property name="font">
                 <font>
                  <family>Times New Roman</family>
-                 <pointsize>12</pointsize>
+                 <pointsize>10</pointsize>
                  <weight>50</weight>
                  <bold>false</bold>
                 </font>
                </property>
                <property name="title">
-                <string>Move</string>
+                <string>MOVE WITH TRẠECTORY</string>
                </property>
                <layout class="QGridLayout" name="gridLayout_3">
                 <item row="1" column="0">
@@ -778,13 +799,13 @@
                <property name="font">
                 <font>
                  <family>Times New Roman</family>
-                 <pointsize>12</pointsize>
+                 <pointsize>10</pointsize>
                  <weight>50</weight>
                  <bold>false</bold>
                 </font>
                </property>
                <property name="title">
-                <string>Command pending</string>
+                <string>COMMAND PENDING</string>
                </property>
                <layout class="QHBoxLayout" name="horizontalLayout_4">
                 <item>
@@ -1302,7 +1323,7 @@
                 <bool>false</bool>
                </property>
                <property name="text">
-                <string>Send command</string>
+                <string>SEND COMMAND</string>
                </property>
               </widget>
              </item>
@@ -1326,7 +1347,7 @@
             <property name="font">
              <font>
               <family>Times New Roman</family>
-              <pointsize>12</pointsize>
+              <pointsize>10</pointsize>
               <weight>75</weight>
               <bold>true</bold>
              </font>
@@ -1335,15 +1356,15 @@
              <bool>true</bool>
             </property>
             <property name="title">
-             <string>Drone status</string>
+             <string>DRONE STATUS</string>
             </property>
            </widget>
           </item>
          </layout>
          <zorder>frame_3</zorder>
-         <zorder>Title</zorder>
          <zorder>droneStatusGroupBox</zorder>
          <zorder>groupBoxControl</zorder>
+         <zorder>Title</zorder>
         </widget>
        </item>
       </layout>
@@ -1356,8 +1377,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1165</width>
-     <height>26</height>
+     <width>1015</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>

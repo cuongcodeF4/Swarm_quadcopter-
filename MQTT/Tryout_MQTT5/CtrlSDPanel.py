@@ -82,7 +82,7 @@ class MyWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         # set the title
-        self.setWindowTitle("Swarm Drone")
+        self.setWindowTitle("Swarm Drone Control Panel")
         
         # set image for side panel 
         pathIcon = os.path.join(self.dirname, 'Images/drone_swarm.webp')
