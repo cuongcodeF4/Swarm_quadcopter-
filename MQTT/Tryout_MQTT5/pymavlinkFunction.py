@@ -149,6 +149,7 @@ class Mav():
         while True:        
             msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout = 2)
             msgGps = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = 2)
+            
             if msg != None :
                 if msg.get_srcSystem() == self.targetSys:       
                     self.msg = msg
@@ -159,6 +160,11 @@ class Mav():
                     self.msgGps = msgGps
             else:
                 self.msgGps = None
+            # if msgYaw != None :
+            #     if msgYaw.get_srcSystem() == 1:       
+            #         self.msgYaw = msgYaw
+            # else:
+            #     self.msgYaw = None
     #get value
     #user input in a ;ist of data and para user wanna take out
     #The function will scan through all the para and get all the info need for the listed para
@@ -204,10 +210,10 @@ class Mav():
             else:
                 return None
         elif param == "YAW":
-            msg = self.drone.recv_match(type='ATTITUDE', blocking=True, timeout = 5)
+            self.msgYaw = self.drone.recv_match(type='ATTITUDE', blocking=True, timeout = 2)
             # Extract yaw value from the ATTITUDE message
-            if msg:
-                return msg.yaw
+            if self.msgYaw:
+                return self.msgYaw.yaw
             else:
                 return None
 

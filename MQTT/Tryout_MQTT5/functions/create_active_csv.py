@@ -123,7 +123,7 @@ def takeoff_and_initial_climb(initial_altitude, climb_rate, step_time, writer, l
     
     return t, idx, (x, y, z)
 
-def hold_position(hold_time, step_time, writer, last_time, last_step, last_coordinates, mode=20):
+def hold_position(hold_time, step_time, writer, last_time, last_step, yawDr,last_coordinates, mode=20):
     """
     This function writes a set of steps to a csv file to hold the drone at its current position for a certain time.
 
@@ -149,7 +149,7 @@ def hold_position(hold_time, step_time, writer, last_time, last_step, last_coord
         x, y, z = last_coordinates
         vx = vy = vz = 0
         ax = ay = az = 0
-        yaw = 0
+        yaw = yawDr
         row = [t, x, y, z, vx, vy, vz, ax, ay, az, yaw, mode]
         writer.writerow(row)
 
@@ -158,7 +158,7 @@ def hold_position(hold_time, step_time, writer, last_time, last_step, last_coord
 
     return last_time, last_step, last_coordinates
 
-def move_to(target_coordinates, move_speed, step_time, writer, last_time, last_step, last_coordinates, mode=30):
+def move_to(target_coordinates,yawDr, move_speed, step_time, writer, last_time, last_step, last_coordinates, mode=30):
     """
     This function writes a set of steps to a csv file to move the drone to target coordinates at a given speed.
 
@@ -198,7 +198,7 @@ def move_to(target_coordinates, move_speed, step_time, writer, last_time, last_s
         ax = 0
         ay = 0
         az = 0
-        yaw = 0
+        yaw = yawDr
         row = [t, x, y, z, vx, vy, vz, ax, ay, az, yaw, mode]
         writer.writerow(row)
     
@@ -262,7 +262,7 @@ def move_to_maneuver_start(shape_fcn, maneuver_time, diameter, direction, initia
 
     return last_time, last_step, last_coordinates, start_time
 
-def perform_maneuver(shape_fcn, maneuver_time, diameter, direction, initial_altitude, step_time, shape_args, writer, start_time, last_step, start_coordinates, mode=70):
+def perform_maneuver(shape_fcn, maneuver_time, diameter, direction, initial_altitude, step_time, shape_args, writer, start_time, last_step, start_coordinates,yawDr, mode=70):
     """
     This function makes the drone perform the maneuver described by shape_fcn.
     
@@ -291,7 +291,7 @@ def perform_maneuver(shape_fcn, maneuver_time, diameter, direction, initial_alti
         y += start_y
         x -= maneuver_start_x
         y -= maneuver_start_y
-        yaw = 0
+        yaw = yawDr
         missionTime = start_time + step * step_time
         row = [missionTime, x, y, z, vx, vy, vz, ax, ay, az, yaw, mode]
         writer.writerow(row)
@@ -302,7 +302,7 @@ def perform_maneuver(shape_fcn, maneuver_time, diameter, direction, initial_alti
 
     return last_time, last_step, last_coordinates
 
-def repeat_maneuver(num_repeats, shape_fcn, maneuver_time, diameter, direction, initial_altitude, step_time, shape_args, writer, last_time, last_step, last_coordinates, hold_time, move_speed, start_coordinates, mode_move=100, mode_hold=80):
+def repeat_maneuver(num_repeats, shape_fcn, maneuver_time, diameter, direction, initial_altitude, step_time, shape_args, writer, last_time, last_step, last_coordinates, hold_time, move_speed, start_coordinates, yawDr, mode_move=100, mode_hold=80):
     """
     This function makes the drone repeat the maneuver described by shape_fcn for a specified number of times.
     
@@ -329,21 +329,21 @@ def repeat_maneuver(num_repeats, shape_fcn, maneuver_time, diameter, direction, 
         # last_time, last_step, last_coordinates, start_time = move_to_maneuver_start(shape_fcn, maneuver_time, diameter, direction, initial_altitude, step_time, shape_args, writer, last_time, last_step, last_coordinates, hold_time, move_speed)
         start_time = last_time
         # Call the maneuver function
-        last_time, last_step, last_coordinates = perform_maneuver(shape_fcn, maneuver_time, diameter, direction, initial_altitude, step_time, shape_args, writer, start_time, last_step, last_coordinates)
+        last_time, last_step, last_coordinates = perform_maneuver(shape_fcn, maneuver_time, diameter, direction, initial_altitude, step_time, shape_args, writer, start_time, last_step, last_coordinates,yawDr)
 
         # Hold at the end of the maneuver
-        last_time, last_step, last_coordinates = hold_position(hold_time, step_time, writer, last_time, last_step, last_coordinates, mode=60)
+        last_time, last_step, last_coordinates = hold_position(hold_time, step_time, writer, last_time, last_step,yawDr, last_coordinates, mode=60)
 
         # If this was not the last repetition, move drone back to the start of the maneuver
         if _ < num_repeats - 1:
-            last_time, last_step, last_coordinates = move_to(start_coordinates, move_speed, step_time, writer, last_time, last_step, last_coordinates, mode=50)
+            last_time, last_step, last_coordinates = move_to(start_coordinates,yawDr, move_speed, step_time, writer, last_time, last_step, last_coordinates, mode=50)
 
     return last_time, last_step, last_coordinates
 
 
 
 
-def create_active_csv(shape_name,num_repeats, diameter, direction, maneuver_time, start_x, start_y, initial_altitude, move_speed, hold_time , step_time, output_file="active.csv"):
+def create_active_csv(shape_name,num_repeats, diameter, direction, maneuver_time, start_x, start_y,yaw, initial_altitude, move_speed, hold_time , step_time, output_file="active.csv"):
 
     if shape_name == "Circle":
         shape_code, shape_fcn, shape_args = 1, circle_trajectory, ()
@@ -376,18 +376,18 @@ def create_active_csv(shape_name,num_repeats, diameter, direction, maneuver_time
         start_coordinates = (start_x, start_y, -1*initial_altitude)
 
         # Call the move_to start points function
-        last_time, last_step, last_coordinates = move_to(start_coordinates, move_speed, step_time, writer, last_time, last_step, last_coordinates)
+        last_time, last_step, last_coordinates = move_to(start_coordinates,yaw, move_speed, step_time, writer, last_time, last_step, last_coordinates)
     
 
         # Call the hold_position function
-        last_time, last_step, last_coordinates = hold_position(hold_time, step_time, writer, last_time, last_step, last_coordinates, mode=40)
+        last_time, last_step, last_coordinates = hold_position(hold_time, step_time, writer, last_time, last_step,yaw, last_coordinates, mode=40)
         
 
         # Call the repeat_maneuver function
-        last_time, last_step, last_coordinates = repeat_maneuver(num_repeats, shape_fcn, maneuver_time, diameter, direction, initial_altitude, step_time, shape_args, writer, last_time, last_step, last_coordinates, hold_time, move_speed, start_coordinates)
+        last_time, last_step, last_coordinates = repeat_maneuver(num_repeats, shape_fcn, maneuver_time, diameter, direction, initial_altitude, step_time, shape_args, writer, last_time, last_step, last_coordinates, hold_time, move_speed, start_coordinates,yaw)
         
         #Hold at the end of the menuver
-        last_time, last_step, last_coordinates = hold_position(hold_time, step_time, writer, last_time, last_step, last_coordinates, mode=80)
+        last_time, last_step, last_coordinates = hold_position(hold_time, step_time, writer, last_time, last_step,yaw, last_coordinates, mode=80)
 
 
         # # Define the target coordinates for returning to launch point
