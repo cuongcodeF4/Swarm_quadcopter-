@@ -149,7 +149,7 @@ def hold_position(hold_time, step_time, writer, last_time, last_step, yawDr,last
         x, y, z = last_coordinates
         vx = vy = vz = 0
         ax = ay = az = 0
-        yaw = yawDr
+        yaw = 0
         row = [t, x, y, z, vx, vy, vz, ax, ay, az, yaw, mode]
         writer.writerow(row)
 
@@ -198,7 +198,7 @@ def move_to(target_coordinates,yawDr, move_speed, step_time, writer, last_time, 
         ax = 0
         ay = 0
         az = 0
-        yaw = yawDr
+        yaw = 0
         row = [t, x, y, z, vx, vy, vz, ax, ay, az, yaw, mode]
         writer.writerow(row)
     
@@ -283,15 +283,15 @@ def perform_maneuver(shape_fcn, maneuver_time, diameter, direction, initial_alti
     """
     start_x, start_y, start_z = start_coordinates
     move_steps = int(maneuver_time / step_time)
-    maneuver_start_x, maneuver_start_y = shape_fcn(0, maneuver_time, diameter, direction, initial_altitude, step_time, *shape_args)[:2]
+    maneuver_start_x, maneuver_start_y = shape_fcn(0, maneuver_time, diameter, direction, initial_altitude, step_time, *shape_args,yawDr)[:2]
 
     for step in range(move_steps):
-        x, y, z, vx, vy, vz, ax, ay, az = shape_fcn(step, maneuver_time, diameter, direction, initial_altitude, step_time, *shape_args)
+        x, y, z, vx, vy, vz, ax, ay, az = shape_fcn(step, maneuver_time, diameter, direction, initial_altitude, step_time, *shape_args,yawDr)
         x += start_x
         y += start_y
         x -= maneuver_start_x
         y -= maneuver_start_y
-        yaw = yawDr
+        yaw = 0
         missionTime = start_time + step * step_time
         row = [missionTime, x, y, z, vx, vy, vz, ax, ay, az, yaw, mode]
         writer.writerow(row)

@@ -2,20 +2,21 @@ import time
 import math
 
 
-def circle_trajectory(step, maneuver_time, diameter, direction, initial_alt, step_time):
+def circle_trajectory(step, maneuver_time, diameter, direction, initial_alt, step_time,yawToMaster):
+    thetaCurrent = 180 - yawToMaster
     t = step * step_time
     theta = 2 * direction * math.pi * t / maneuver_time
-
-    x = (diameter / 2) * math.cos(theta)
-    y = (diameter / 2) * math.sin(theta)
+    
+    x = (diameter / 2) * math.cos(theta + thetaCurrent )
+    y = (diameter / 2) * math.sin(theta + thetaCurrent )
     z = -1 * initial_alt
 
-    vx = -(diameter / 2) * math.sin(theta) * 2 * direction * math.pi / maneuver_time
-    vy = (diameter / 2) * math.cos(theta) * 2 * direction * math.pi / maneuver_time
+    vx = -(diameter / 2) * math.sin(theta + thetaCurrent ) * 2 * direction * math.pi / maneuver_time
+    vy = (diameter / 2) * math.cos(theta + thetaCurrent ) * 2 * direction * math.pi / maneuver_time
     vz = 0
 
-    ax = -(diameter / 2) * math.cos(theta) * 4 * direction * math.pi ** 2 / maneuver_time ** 2
-    ay = -(diameter / 2) * math.sin(theta) * 4 * direction * math.pi ** 2 / maneuver_time ** 2
+    ax = -(diameter / 2) * math.cos(theta + thetaCurrent ) * 4 * direction * math.pi ** 2 / maneuver_time ** 2
+    ay = -(diameter / 2) * math.sin(theta + thetaCurrent ) * 4 * direction * math.pi ** 2 / maneuver_time ** 2
     az = 0
 
     return x, y, z, vx, vy, vz, ax, ay, az

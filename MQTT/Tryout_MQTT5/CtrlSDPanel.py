@@ -81,6 +81,8 @@ class MyWindow(QMainWindow):
         # Initialize the UI class
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        
         # set the title
         self.setWindowTitle("Swarm Drone Control Panel")
         
