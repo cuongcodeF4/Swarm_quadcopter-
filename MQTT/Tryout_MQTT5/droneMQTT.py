@@ -178,14 +178,11 @@ class droneInstance():
         self.clientInit    = droneMQTT(client_id="Init:"+self.drone)
         self.clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
         time.sleep(WAIT_TO_CONNECT)
-        self.initDecode    = False 
         self.onHandleCmd   = False
         self.checkGPS = False
         self.yawMainDrone = None
         self.HANDLE_DATA = None
-        self.outputData = None
         self.firstTime = False
-        self.pubYaw = False
 
     def receive_data(self,Drone:droneMQTT,topic):
         # Initial the Client to receive command 
@@ -200,10 +197,6 @@ class droneInstance():
             message = Drone.queueData.get()
             properties = dict(message.properties.UserProperty)
             if properties['typeMsg'] == CMD: 
-                # if self.initDecode == False:
-                #     # The class to decode command receive from master
-                #     self.DecodeCommand = DecodeCommand(self.drone,self.clientInit,self.clientInit.droneMavLink,self.listLatitude,self.listLongitude)
-                #     self.initDecode = True
                 msg_recv= message.payload.decode()
                 msg_recv_dict = ujson.loads(msg_recv)
                 print("[DEBUG]{} vs {}".format(self.droneConnected,DRONE_NUMBER))
@@ -380,13 +373,14 @@ class droneInstance():
             maneuver_time=maneuver_time,
             start_x=start_x,
             start_y=start_y,
-            yaw = 0,
+            yaw = yaw,
             initial_altitude=initial_altitude,
             move_speed = move_speed,
             hold_time = hold_time,
             step_time = step_time,
             output_file = output_file,
         )
+        # export_and_plot_shape(output_file)
 
 
     def distance(self,lat1, lon1, lat2, lon2):

@@ -2,8 +2,8 @@ import time
 import math
 
 
-def circle_trajectory(step, maneuver_time, diameter, direction, initial_alt, step_time,yawToMaster):
-    thetaCurrent = 180 - yawToMaster
+def circle_trajectory(step,yawToMaster, maneuver_time, diameter, direction, initial_alt, step_time):
+    thetaCurrent = math.radians(180 + yawToMaster)
     t = step * step_time
     theta = 2 * direction * math.pi * t / maneuver_time
     

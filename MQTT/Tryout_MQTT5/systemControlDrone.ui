@@ -722,7 +722,7 @@
                 </font>
                </property>
                <property name="title">
-                <string>MOVE WITH TRẠECTORY</string>
+                <string>MOVE WITH TRAJECTORY</string>
                </property>
                <layout class="QGridLayout" name="gridLayout_3">
                 <item row="1" column="0">
@@ -1378,7 +1378,7 @@
      <x>0</x>
      <y>0</y>
      <width>1015</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>
