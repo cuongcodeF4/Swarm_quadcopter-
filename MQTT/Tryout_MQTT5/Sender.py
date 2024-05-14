@@ -89,6 +89,8 @@ class Master(object):
             if properties['typeMsg'] == LSTWILLMSG:             
                 msgLstWil= message.payload.decode()
                 self.droneConnected += int(msgLstWil) 
+                if self.droneConnected < 0:
+                    self.droneConnected = 0 
                 self.connectStatus = OFF
                 idDrone = int(properties["nameDrone"].split(":")[1])
                 if idDrone in self.droneConnectList:
