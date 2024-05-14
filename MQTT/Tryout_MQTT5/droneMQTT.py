@@ -9,7 +9,7 @@ from queue import Queue
 from SymbolicName import *
 import threading
 import ujson
-from MainUiSysDrone import MyWindow,MasterInit
+from CtrlSDPanel import MyWindow,MasterInit
 from datetime import datetime
 from pymavlinkFunction import *
 from functions.export_and_plot_shape import export_and_plot_shape
@@ -362,8 +362,8 @@ class droneInstance():
         diameter = diameterCir
         direction = 1
         maneuver_time = 60.0
-        start_x = diameterCir/2 + distance*math.cos(math.radians(yawValue))
-        start_y = distance*math.sin(math.radians(yawValue))
+        start_x = (distance-diameterCir/2)*math.cos(math.radians(yawValue))
+        start_y = (distance-diameterCir/2)*math.sin(math.radians(yawValue))
         yaw = yawValue
         initial_altitude = alt
         move_speed = 2.0  # m/s
@@ -380,7 +380,7 @@ class droneInstance():
             maneuver_time=maneuver_time,
             start_x=start_x,
             start_y=start_y,
-            yaw = yaw,
+            yaw = 0,
             initial_altitude=initial_altitude,
             move_speed = move_speed,
             hold_time = hold_time,
