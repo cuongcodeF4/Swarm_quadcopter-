@@ -6,11 +6,12 @@ DRONE_COM = "topicDroneCom22"
 CONTROL_COM = "topicControlCom"
 LSTWILLMSG = "LastWillMessageType"
 INITMSG = "InitMessageType"
+INFO = "InfoMessageType"
 REPORTMSG = "SystemReportMessageType"
 YAWVALUE = "YawValueMessageType"
 CMD        = "CommandType"
 
-
+DONE = 1
 
 MASTERLSTWIL = "MasterLastWillMessageType"
 
@@ -20,6 +21,9 @@ SUB_CONNECT =-1
 TYPE_CLIENT_INIT = 0
 TYPE_CLIENT_NORMAL = 1
 TYPE_CLIENT_MASTER =2 
+TYPE_CLIENT_INFO =3
+
+
 MASTER_ONLINE = 1
 MASTER_OFFLINE = 0
 TOPIC_LAST_WILL = "Drone/LastWill"

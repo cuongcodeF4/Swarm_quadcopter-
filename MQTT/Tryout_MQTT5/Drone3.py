@@ -1,4 +1,4 @@
-from droneMQTT import droneMQTT
+from MQTTProtocol import MQTTProtocol
 from droneMQTT import droneInstance
 from queue import Queue
 import time

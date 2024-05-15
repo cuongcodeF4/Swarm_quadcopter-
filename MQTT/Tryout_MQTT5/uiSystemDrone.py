@@ -426,7 +426,7 @@ class Ui_MainWindow(object):
         self.commandPending.setSizePolicy(sizePolicy)
         self.commandPending.setMinimumSize(QtCore.QSize(120, 70))
         font = QtGui.QFont()
-        font.setPointSize(8)
+        font.setPointSize(12)
         self.commandPending.setFont(font)
         self.commandPending.setReadOnly(True)
         self.commandPending.setObjectName("commandPending")
