@@ -1,4 +1,4 @@
-from droneMQTT import droneMQTT
+from MQTTProtocol import MQTTProtocol
 from enum import Enum
 import time
 import ujson
@@ -28,15 +28,17 @@ class Master(object):
         self.listBattery = [0]*self.droneNumber
         self.updateStsBat = OFF
         self.completedCheck = False
+        self.droneCompleted = 0
+        self.missionDone = False 
     def masterConnectBroker(self):  
         print("Enter master")
         #Create a client to receive the message last will from the drones
-        self.masterRecvLW    = droneMQTT(client_id="MaterLstWil")
+        self.masterRecvLW    = MQTTProtocol(client_id="MaterLstWil")
         self.masterRecvLW.connectBroker(typeClient=TYPE_CLIENT_INIT)
         self.thdMasterRecvLW  = threading.Thread(target=self.MasterReceiveLW, args=(self.masterRecvLW,DRONE_COM,)) 
         self.thdMasterRecvLW.start()
         # Initial the Master to send command 
-        self.Master           = droneMQTT(client_id="Master")
+        self.Master           = MQTTProtocol(client_id="Master")
         self.Master.connectBroker(typeClient= TYPE_CLIENT_MASTER)
         self.Master.Client.loop_start()
         time.sleep(WAIT_TO_CONNECT)   # wait for master into on connect to set the var status is CONNECT_SUCCESS
@@ -76,7 +78,7 @@ class Master(object):
             self.Master.publishMsg(topic= DRONE_COM, payload= dataSend, prop =custom_properties)          
             print("[DEBUG] Master sends message") 
     
-    def MasterReceiveLW(self,masterLW:droneMQTT,topic):
+    def MasterReceiveLW(self,masterLW:MQTTProtocol,topic):
         # Initial the Client to receive command 
         masterLW.connectBroker(typeClient=TYPE_CLIENT_INIT)
         masterLW.subscribe(topic=topic)
@@ -154,6 +156,15 @@ class Master(object):
                             self.FcConnectStatus = True
                 except Exception as e:
                     print("An error occurred when get Battery value:", e)
+
+            elif properties['typeMsg'] == INFO:
+                msgInfo = message.payload.decode()
+                self.droneCompleted += int(msgInfo)
+                if self.droneCompleted == self.droneConnected:
+                    self.missionDone = True
+                    self.droneCompleted = 0 
+
+
                     
 
 

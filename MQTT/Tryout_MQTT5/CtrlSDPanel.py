@@ -43,6 +43,7 @@ class MasterInit(QThread):
     checkConnectDrone = pyqtSignal()
     updateDroneSts    = pyqtSignal()
     updateBatDrone    = pyqtSignal()
+    updateCmdPending  = pyqtSignal()
     def __init__(self,func,master,dataSend):
         super().__init__()
         self.func = func
@@ -71,6 +72,10 @@ class MasterInit(QThread):
             if self.masterPC.updateStsBat == ON :
                 self.masterPC.updateStsBat = OFF
                 self.updateBatDrone.emit()
+            if self.masterPC.missionDone == True:
+                self.masterPC.missionDone = False
+                self.updateCmdPending.emit()
+
             time.sleep(0.1) 
 
 class MyWindow(QMainWindow):
@@ -103,6 +108,7 @@ class MyWindow(QMainWindow):
         # Initialize list to store drone labels
         self.drone_labels = []  
 
+        # List to store battery of drone corresponding ID
         self.batteryDrone = []  
 
         #Queue contain data to send to drone
@@ -110,8 +116,10 @@ class MyWindow(QMainWindow):
         #payload to send 
         self.payload = {}
 
+        # Include All and Unit select command type
         self.typeCmd = ALL
 
+        # Initial default size of image drone was created 
         self.sizeImage = 100
 
         self.commandList = ["Choose the command","Arm","Disarm","Takeoff","Land","Prepare act"]       
@@ -124,14 +132,17 @@ class MyWindow(QMainWindow):
         self.ui.typeControlComboBox.addItems(self.typeList)
         self.ui.typeControlComboBox.activated.connect(self.enableSelectDrone)
         self.ui.shapeComboBox.activated.connect(self.enableCommandMission)
-        # self.ui.commandComboBox.activated.connect(self.addCommand)
         self.ui.startMaster.clicked.connect(self.runMaster)
         self.ui.stopMaster.clicked.connect(self.stopMaster)
         self.ui.bntSendCommand.clicked.connect(self.sendCommand)
+        # Variable to check if master online is do something  
         self.run = 0 
+        # Variable to get name command to display on command pending area after send command
+        self.currentCmd = ""
         
-
+    #This function to start connect master to broker  
     def runMaster(self):
+        # Check drone number was input ? 
         if not self.ui.nrbOfDroneLineEdit.text():
             self.printLog("WARNING","Please enter the number of drones!")
             QMessageBox.warning(self, "Warning", "Please enter the number of drones!")          
@@ -141,15 +152,22 @@ class MyWindow(QMainWindow):
                 self.run = 1
                 from Sender import Master 
                 self.num_drones = int(self.ui.nrbOfDroneLineEdit.text())
-                self.master = Master(self.num_drones)              
+                # Initial class Master from Sender.py file 
+                self.master = Master(self.num_drones) 
+
+                # Creating Qthread to handle event when init master              
                 self.masterInit = MasterInit(self.master.masterConnectBroker,self.master,self.dataSend)
+
+                # Signal of Qthread Master init 
                 self.masterInit.start()
                 self.masterInit.updateConsoleLog.connect(self.printLog)
                 self.masterInit.updateButton.connect(self.updateBntStartMaster)
                 self.masterInit.checkConnectDrone.connect(self.master.masterCheckConnect)
                 self.masterInit.updateDroneSts.connect(self.showDroneConnect)
                 self.masterInit.updateBatDrone.connect(self.updateBattery)
+                self.masterInit.updateCmdPending.connect(self.removeCmdPending)
 
+    # This function to stop master 
     def stopMaster(self):
         self.printLog("INFO","Master was disconnected with broker")
         self.ui.startMaster.setStyleSheet("color: black;")
@@ -179,7 +197,7 @@ class MyWindow(QMainWindow):
             self.ui.commandComboBox.setEnabled(False)
 
             
-
+    # Format payload when send to all drone
     def DATA_ALL_TYPE(self,CMD, PARA=10, ALT=None, LON=None, LAT=None):
             return {
                 "TYPE" : ALL,
@@ -190,6 +208,8 @@ class MyWindow(QMainWindow):
                     "LON" : LON,
                     "LAT" : LAT}
             }
+    
+    # Format payload when send to any drone 
     def DATA_UNIT_TYPE(self,UNIT_SELECTED, CMD, PARA=10, ALT=None, LON=None, LAT=None):    
             return {
                 "TYPE" : UNIT,
@@ -202,11 +222,15 @@ class MyWindow(QMainWindow):
                         "LAT" : LAT
                         }
                     }
+    
+    # Add command is selected after push Send command button
     def addCommand(self):
         self.payload= {}
+        # Send basic command ( Arm, takeoff, land,...) 
         if self.ui.shapeComboBox.currentText() == "Choose the shape" : 
             cmd = self.ui.commandComboBox.currentText() 
             if cmd != "Choose the command":
+                self.currentCmd = cmd
                 alt = (self.ui.altValue.text())
                 long = (self.ui.longValue.text())
                 lat = (self.ui.latValue.text())
@@ -216,8 +240,11 @@ class MyWindow(QMainWindow):
                 elif self.typeCmd == UNIT:
                     droneSelected = self.ui.droneNrmControlLineEdit.text()
                     self.payload = self.DATA_UNIT_TYPE(droneSelected,cmd,para,alt,long,lat)
+
+        # Send a shape to drones follow 
         else:
             cmd   =  self.ui.shapeComboBox.currentText()
+            self.currentCmd = cmd
             para  =  self.ui.paraValue.text()
             alt   =  self.ui.altValue.text()
             long  =  self.ui.longValue.text()
@@ -226,11 +253,26 @@ class MyWindow(QMainWindow):
 
     def sendCommand(self):
         self.addCommand()
+        # Check master online?
         if self.run ==1:
+            #Checking the drone number are enough?
             if self.master.droneConnected == self.num_drones:
+                # Add command to command pending table 
+                self.ui.commandPending.append(self.currentCmd)
+                # Convert payload to ujon format
                 self.dataSend.put(ujson.dumps(self.payload))
+            # Call function masterSendCommand from Sender.py to send payload to drones
             self.master.masterSendCommand(self.dataSend)
             print("Queue size after clearing:", self.dataSend.qsize())
+
+    def removeCmdPending(self):
+        text = self.ui.commandPending.toPlainText()  # Get the entire text from the QTextEdit
+        lines = text.split('\n')  # Split the text into lines
+        if lines:  # Ensure there is at least one line
+            lines.pop(0)  # Remove the first line
+        new_text = '\n'.join(lines)  # Join the remaining lines
+        self.ui.commandPending.setPlainText(new_text)  # Set the modified text back to the QTextEdit
+
 
     def updateDroneStatus(self):
         self.ui.commandComboBox.setCurrentIndex(0)
