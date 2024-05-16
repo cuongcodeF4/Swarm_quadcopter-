@@ -17,7 +17,7 @@ import time
 
 
 #main class
-class Mav():
+class Mav(object):
     #contain only the fucntion to run all the pymavlink msg needed
     #no computational involve and only take in basic data 
     def __init__(self,targSys,ip):

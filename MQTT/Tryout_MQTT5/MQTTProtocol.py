@@ -61,7 +61,7 @@ class MQTTProtocol(object):
             propLW = mqtt_client.Properties(props.PacketTypes.WILLMESSAGE)
             propLW.UserProperty = [("typeMsg",MASTERLSTWIL)]
             self.Client.will_set(DRONE_COM,payload= MASTER_OFFLINE ,qos=2,retain=False,properties=propLW)
-        self.Client.connect(self.broker, self.port, 5 ,clean_start =0)
+        self.Client.connect(self.broker, self.port, 5,clean_start =0)
 
     def publishMsg(self,topic,payload,prop):
         # payload= {}
