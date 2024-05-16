@@ -72,6 +72,7 @@ class MAV():
                         break
                     else:
                         ACK =  False
+                        break
         return ACK
     
     #Arm func
@@ -125,24 +126,8 @@ class MAV():
             0
         )
         #ACK handle
-        #check to see if the command was send successful
-        #scan for the ACK msg
-        #what if the drone never reach the wanted high? 
-        ACK_check = self.drone.wait_for_message(MAVLINK_MSG_ID_DO_ACKNOWLEDGE, timeout = 1)
-        if ACK_check:
-            ACK_check = self.drone.recv_msg().get_payload()[1]
-            if ACK_check == mavutil.mavlink.MAV_RESULT_ACCEPTED:
-                while True:
-                    #check for alt
-                    instance_ALT = self.getValue("ALT")
-                    if instance_ALT < 0.1:
-                        #send ACK bit
-                        ACK  = True
-                        break
-                    else:
-                        ACK =  False
-        return ACK
-        return ACK
+        
+        return self.checkACK()
 
     #RTL mode
     def RTL(self):
@@ -160,23 +145,7 @@ class MAV():
             0
         )
         #ACK handle
-        #check to see if the command was send successful
-        #scan for the ACK msg
-        #what if the drone never reach the wanted high? 
-        ACK_check = self.drone.wait_for_message(MAVLINK_MSG_ID_DO_ACKNOWLEDGE, timeout = 1)
-        if ACK_check:
-            ACK_check = self.drone.recv_msg().get_payload()[1]
-            if ACK_check == mavutil.mavlink.MAV_RESULT_ACCEPTED:
-                while True:
-                    #check for alt
-                    instance_ALT = self.getValue("ALT")
-                    if instance_ALT < 0.1:
-                        #send ACK bit
-                        ACK  = True
-                        break
-                    else:
-                        ACK =  False
-        return ACK
+        return self.checkACK()
     
     #get value
     #user input in a ;ist of data and para user wanna take out
