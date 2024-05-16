@@ -40,6 +40,9 @@ class droneInstance(object):
         self.HANDLE_DATA = None
         self.firstTime = False
         self.queueCmd = Queue()
+        self.nbrDrawCircle = 0
+        self.preX = 0
+        self.preY = 0
 
     def receive_data(self,Drone:MQTTProtocol,topic):
         # Initial the Client to receive command 
@@ -147,6 +150,7 @@ class droneInstance(object):
                     self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
 
                 else:
+                    self.nbrDrawCircle += 1
                     diameter = float(self.HANDLE_DATA["PARA"])
                     alt      = float(self.HANDLE_DATA["ALT"])
                     # print("[DEBUG] List Lat",self.listLatitude)
@@ -154,10 +158,10 @@ class droneInstance(object):
                     distanceDrones = self.distance(self.listLatitude[0],self.listLongitude[0],self.listLatitude[idDrone-1],self.listLongitude[idDrone-1]) 
                     yaw  = self.calculateYaw(self.listLatitude[0],self.listLongitude[0],self.listLatitude[idDrone-1],self.listLongitude[idDrone-1])
                     print("[DEBUG] Distance:", distanceDrones)  
-                    print("[DEBUG] yaw:", yaw)  
+                    print("[DEBUG] Yaw:", yaw)  
+                    print("[DEBUG] Đường kính = ", diameter)
                     # Create csv file to store parameter of each trajectory
-                    print("yaw main Drone = ", self.yawMainDrone)
-                    self.creatorCsv(shapeName="Circle", diameterCir= diameter,alt=alt,distance=round(distanceDrones,0),yawValue= yaw)
+                    self.creatorCsv(shapeName="Circle", diameterCir= diameter,alt=alt,distance=round(distanceDrones,0),yawValue= yaw , nbrDraw= self.nbrDrawCircle)
                     #Add condition to perform this cmd 
                     waypoints_list, yawDr = self.readWaypoints("shapes/active.csv")
 
@@ -167,8 +171,7 @@ class droneInstance(object):
                     self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
                     time.sleep(5)
                     print("[INFO] Performing the mission...")
-                    print("[DEBUG] yaw:", yaw)  
-                    self.clientInit.droneMavLink.performMission(waypoints_list, yaw)
+                    self.clientInit.droneMavLink.performMission(waypoints_list, yawDr)
             self.onHandleCmd = False
             self.clientSendInfo.droneSendInfo(DRONE_COM,DONE)
                     
@@ -215,21 +218,26 @@ class droneInstance(object):
                 yaw = float(row["yaw"])
                 waypoints_list.append((t, px, py, pz, vx, vy, vz))
         return waypoints_list, yaw
-    def creatorCsv(self,shapeName,diameterCir,alt,distance,posXMaster=0,posYMaster=0, yawValue = 0):
+    def creatorCsv(self,shapeName,diameterCir,alt,distance,posXMaster=0,posYMaster=0, yawValue = 0, nbrDraw =1):
         num_repeats = 1
         shape_name=shapeName
         diameter = diameterCir
         direction = 1
         maneuver_time = 40
-        start_x = abs(distance-diameterCir/2)*math.cos(math.radians(yawValue))
-        start_y = abs(distance-diameterCir/2)*math.sin(math.radians(yawValue))
+        start_x = (distance-diameterCir/2)*math.cos(math.radians(yawValue)) + self.preX 
+        start_y = (distance-diameterCir/2)*math.sin(math.radians(yawValue)) + self.preY
+
+        self.preX = round(start_x,2)
+        self.preY = round(start_y,2)
+        
+        print("[DEBUG] x = {}, y= {}".format(start_x,start_y))
+
         yaw = yawValue
         initial_altitude = alt
         move_speed = 2.0  # m/s
         hold_time = 1 #s
         step_time = 0.05 #s
         output_file = "shapes/active.csv"
-
 
         create_active_csv(
             shape_name=shape_name,
@@ -244,6 +252,7 @@ class droneInstance(object):
             move_speed = move_speed,
             hold_time = hold_time,
             step_time = step_time,
+            numberDraw = nbrDraw,
             output_file = output_file,
         )
         # export_and_plot_shape(output_file)

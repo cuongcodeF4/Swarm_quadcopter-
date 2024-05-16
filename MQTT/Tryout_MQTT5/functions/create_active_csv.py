@@ -182,6 +182,7 @@ def move_to(target_coordinates, move_speed, step_time, writer, last_time, last_s
     distance = math.sqrt((target_coordinates[0] - last_coordinates[0])**2 +
                          (target_coordinates[1] - last_coordinates[1])**2 +
                          (target_coordinates[2] - last_coordinates[2])**2)
+    print("[DEBUG] dis === ",distance )
     
     move_time = distance / move_speed
     move_steps = int(move_time / step_time)
@@ -191,6 +192,7 @@ def move_to(target_coordinates, move_speed, step_time, writer, last_time, last_s
         ratio = i / move_steps
         x = last_coordinates[0] + (target_coordinates[0] - last_coordinates[0]) * ratio
         y = last_coordinates[1] + (target_coordinates[1] - last_coordinates[1]) * ratio
+        
         z = last_coordinates[2] + (target_coordinates[2] - last_coordinates[2]) * ratio
         vx = move_speed * (target_coordinates[0] - last_coordinates[0]) / distance
         vy = move_speed * (target_coordinates[1] - last_coordinates[1]) / distance
@@ -343,32 +345,43 @@ def repeat_maneuver(num_repeats, shape_fcn, maneuver_time, diameter, direction, 
 
 
 
-def create_active_csv(shape_name,num_repeats, diameter, direction, maneuver_time, start_x, start_y,yaw, initial_altitude, move_speed, hold_time , step_time, output_file="active.csv"):
+def create_active_csv(shape_name,num_repeats, diameter, direction, maneuver_time, start_x, start_y,yaw, initial_altitude, move_speed, hold_time , step_time, numberDraw,output_file="shapes/active.csv"):
 
     if shape_name == "Circle":
         shape_code, shape_fcn, shape_args = 1, circle_trajectory, ()
-    elif shape_name == "square":
+    elif shape_name == "Square":
         shape_code, shape_fcn, shape_args = 2, square_trajectory, ()
     else:
         # Raise an error for invalid shape names
         raise ValueError(f"Invalid shape name: {shape_name}")
 
-    # The function returns the code, function, and arguments associated with the given shape name
-    print(f"Shape Code: {shape_code}")
-    print(f"Shape Function: {shape_fcn}")
-    print(f"Shape Arguments: {shape_args}")
+    if numberDraw > 1 :
+        # Đọc file CSV
+        df = pd.read_csv(output_file)
+
+        # Lấy giá trị cuối cùng của các cột px, py, pz
+        last_px = df['px'].iloc[-1]
+        last_py = df['py'].iloc[-1]
+        last_pz = df['pz'].iloc[-1]
+
+        print(f'Giá trị cuối cùng của px: {last_px}')
+        print(f'Giá trị cuối cùng của py: {last_py}')
+        print(f'Giá trị cuối cùng của pz: {last_pz}')
+
+        last_time = 0.0
+        last_step = 0
+        last_coordinates = (last_px, last_py, -1*initial_altitude)
+    else:
+        # Initialize variables
+        last_time = 0.0
+        last_step = 0
+        last_coordinates = (0, 0, -1*initial_altitude)
 
     header = ["t", "px", "py", "pz", "vx", "vy", "vz", "ax", "ay", "az", "yaw", "mode"]
 
     with open(output_file, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(header)
-
-        # Initialize variables
-        last_time = 0.0
-        last_step = 0
-        last_coordinates = (0, 0, -1*initial_altitude)
-
         # Call the hold_position function after the climb
         last_time, last_step, last_coordinates = hold_position(hold_time, step_time, writer, last_time, last_step, last_coordinates,mode = 20)
 

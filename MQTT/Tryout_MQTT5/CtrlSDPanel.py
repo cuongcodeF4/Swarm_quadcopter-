@@ -255,15 +255,31 @@ class MyWindow(QMainWindow):
         self.addCommand()
         # Check master online?
         if self.run ==1:
-            #Checking the drone number are enough?
-            if self.master.droneConnected == self.num_drones:
-                # Add command to command pending table 
-                self.ui.commandPending.append(self.currentCmd)
-                # Convert payload to ujon format
-                self.dataSend.put(ujson.dumps(self.payload))
-            # Call function masterSendCommand from Sender.py to send payload to drones
-            self.master.masterSendCommand(self.dataSend)
-            print("Queue size after clearing:", self.dataSend.qsize())
+            if self.currentCmd == "Circle" or self.currentCmd == "Takeoff":
+                if  self.ui.altValue.text() != "":
+                    #Checking the drone number are enough?
+                    if self.master.droneConnected == self.num_drones:
+                        # Add command to command pending table 
+                        self.ui.commandPending.append(self.currentCmd)
+                        # Convert payload to ujon format
+                        self.dataSend.put(ujson.dumps(self.payload))
+                    # Call function masterSendCommand from Sender.py to send payload to drones
+                    self.master.masterSendCommand(self.dataSend)
+                    print("Queue size after clearing:", self.dataSend.qsize())
+                else:
+                    self.printLog("WARNING","Please enter altitude value!")
+                    QMessageBox.warning(self, "Warning", "Please enter altitude value!")        
+            else:
+                #Checking the drone number are enough?
+                    if self.master.droneConnected == self.num_drones:
+                        # Add command to command pending table 
+                        self.ui.commandPending.append(self.currentCmd)
+                        # Convert payload to ujon format
+                        self.dataSend.put(ujson.dumps(self.payload))
+                    # Call function masterSendCommand from Sender.py to send payload to drones
+                    self.master.masterSendCommand(self.dataSend)
+                    print("Queue size after clearing:", self.dataSend.qsize())  
+            return
 
     def removeCmdPending(self):
         text = self.ui.commandPending.toPlainText()  # Get the entire text from the QTextEdit
