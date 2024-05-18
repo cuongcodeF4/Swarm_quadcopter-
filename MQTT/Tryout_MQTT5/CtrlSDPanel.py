@@ -36,7 +36,6 @@ from uiSystemDrone import Ui_MainWindow
 #     def run(self):
 #         while True:
 #             self.function()
-
 class MasterInit(QThread):
     updateButton      = pyqtSignal()
     updateConsoleLog  = pyqtSignal(str,str)
