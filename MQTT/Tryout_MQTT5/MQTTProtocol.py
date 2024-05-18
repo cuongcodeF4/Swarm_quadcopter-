@@ -34,6 +34,7 @@ class MQTTProtocol(object):
         to be included. Optional - if not set, no properties are sent.
         """
         def on_connect(client, userdata, flags, reasonCode, properties):
+            """Handle connection events."""
             self.status = CONNECT_SUCCESS
             self.log.put( self.client_id + " connected to MQTT Broker: " +str(reasonCode))
             print("[INFO]Connected to MQTT Broker!")
@@ -41,6 +42,7 @@ class MQTTProtocol(object):
      
         
         def on_publish(client, userdata, mid):
+            """Handle publish events."""
             self.log.put( self.client_id + " published message")
             #print("[INFO]Message published with MID "+str(mid))
         def on_disconnect( clinet,userdata, rc, properties):
@@ -64,24 +66,18 @@ class MQTTProtocol(object):
         self.Client.connect(self.broker, self.port, 5,clean_start =0)
 
     def publishMsg(self,topic,payload,prop):
-        # payload= {}
-        # for drone in range(3):
-        #     payload[f"drone{drone+1}"] = self.payload[drone]
-        # msg = json.dumps(payload)
-
-        ####################################
-        # This code to handle payload type #
-        ####################################
+        """Publish a message to a topic."""
 
         resultPub = self.Client.publish(topic,payload, qos=2,retain=False,properties=prop)
-        # result: [0, 1]
-        # status = resultPub[0]
-        # if status == 0:
-        #     print(f"[INFO] Message <`{payload}`> sent to topic:`{topic}`")
-        # else:
-        #     print(f"[ERROR] Failed to send message to topic {topic}")
+        #result: [0, 1]
+        status = resultPub[0]
+        if status == 0:
+             print(f"[INFO] Message <`{payload}`> sent to topic:`{topic}`")
+        else:
+             print(f"[ERROR] Failed to send message to topic {topic}")
 
     def subscribe(self,topic):
+        """Subscribe to a topic."""
         self.Client.subscribe(topic,qos=2)
         def on_message(client, userdata, msg):
             self.queueData.put(msg) 
@@ -89,6 +85,7 @@ class MQTTProtocol(object):
         self.Client.on_message = on_message
 
     def logger(self):
+        """Log events."""
         pass
         # def on_log(client, userdata, level, buf):
         #     print(f"[INFO]Log level{level}: {buf}")

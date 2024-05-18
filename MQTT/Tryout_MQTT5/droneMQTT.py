@@ -43,6 +43,7 @@ class droneInstance(object):
         self.nbrDrawCircle = 0
         self.preX = 0
         self.preY = 0
+        self.droneCompleted = 0
 
     def receive_data(self,Drone:MQTTProtocol,topic):
         # Initial the Client to receive command 
@@ -61,13 +62,7 @@ class droneInstance(object):
                 msg_recv_dict = ujson.loads(msg_recv)
                 print("[DEBUG]{} vs {}".format(self.droneConnected,DRONE_NUMBER))
                 if self.droneConnected == DRONE_NUMBER:
-                    self.queueCmd.put(msg_recv_dict)
-                    if self.onHandleCmd == False:
-                        print("[DEBUG] Send data to pymavlink")
-                        self.onHandleCmd = True
-                        handleThread = threading.Thread(target=self.decodeCmd , args=(self.queueCmd.get(),))
-                        handleThread.start()
-                  
+                    self.queueCmd.put(msg_recv_dict)      
 
             elif properties['typeMsg'] == MASTERLSTWIL: 
                 msgInit= message.payload.decode()
@@ -115,6 +110,21 @@ class droneInstance(object):
                         self.yawMainDrone = msgReport["YAW"]
                 except Exception as e:
                     print("An error occurred when get GPS value:", e)
+            elif properties['typeMsg'] == INFO:
+                msgInfo = message.payload.decode()
+                self.droneCompleted += int(msgInfo)
+                print("[DEBUG] Drone completed the task: ",self.droneCompleted)
+                if self.droneCompleted == DRONE_NUMBER:
+                    print("[DEBUG] All drone completed the task")
+                    self.onHandleCmd = False
+                    self.droneCompleted = 0 
+        if not self.queueCmd.empty():
+            if self.onHandleCmd == False:
+                print("[DEBUG] Send data to pymavlink")
+                self.onHandleCmd = True
+                handleThread = threading.Thread(target=self.decodeCmd , args=(self.queueCmd.get(),))
+                handleThread.start()
+
 
     def decodeCmd(self, command):
         assert(isinstance(self.clientInit.droneMavLink,Mav))
@@ -172,7 +182,6 @@ class droneInstance(object):
                     time.sleep(5)
                     print("[INFO] Performing the mission...")
                     self.clientInit.droneMavLink.performMission(waypoints_list, yawDr)
-            self.onHandleCmd = False
             self.clientSendInfo.droneSendInfo(DRONE_COM,DONE)
                     
                  
@@ -181,7 +190,6 @@ class droneInstance(object):
             #scan to make sure that the drone is in controlled
             if self.drone in self.HANDLE_DATA["UNIT_SELECTED"]:
                 ############# CONTROL COMMAND ############
-                print("[DEBUG] Drone{} receive unit command".format(self.drone))
                 if self.HANDLE_DATA["CMD"] == "Arm":
                     print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
                     self.clientInit.droneMavLink.arm(1)
@@ -198,8 +206,7 @@ class droneInstance(object):
                     self.clientInit.droneMavLink.land(0,0)
                 elif self.HANDLE_DATA["CMD"] == "Prepare act":
                     pass
-                self.onHandleCmd = False
-                self.clientSendInfo.droneSendInfo(DRONE_COM,DRONE_NUMBER)
+            self.clientSendInfo.droneSendInfo(DRONE_COM,DONE)
 
     def readWaypoints(self,path_to_csv):
         #-----------------------------------Read the waypoints from the CSV file-----------------------------------#
