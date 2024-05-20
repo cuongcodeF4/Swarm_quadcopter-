@@ -1,3 +1,4 @@
+#khai bao thu vien can thiet
 from pymavlink import mavutil
 from functions.trajectories import *
 from functions.create_active_csv import create_active_csv
@@ -19,7 +20,7 @@ import csv
 
 
 #main class
-class Mav():
+class Mav(object):
     #contain only the fucntion to run all the pymavlink msg needed
     #no computational involve and only take in basic data 
     def __init__(self,targSys,ip):
@@ -35,6 +36,14 @@ class Mav():
         print("Heartbeat from system (system %u component %u)" % (self.drone.target_system, self.drone.target_component))
         self.wait_drone_ready()
 
+    def timeout(self, timeOutDuration):
+        endTime = time.time() + timeOutDuration
+        currentTime = time.time()
+        if currentTime >= endTime:
+            return True
+        else:
+            return False
+
     def wait_drone_ready(self):
         #-----------------------------------Wait for the drone to be ready-----------------------------------#
         while True:
@@ -44,16 +53,17 @@ class Mav():
                 break
 
     def performMission(self, waypoints_list, yaw):
-        total_duration = waypoints_list[-1][0]  # Total step is the time of the last waypoint
-        step = 0  # Time variable
+        total_duration = waypoints_list[-1][0]  # Total duration is the time of the last waypoint
+        t = 0  # Time variable
 
-        while step <= total_duration:
+        while t <= total_duration:
             # Find the current waypoint based on time
             current_waypoint = None
             for waypoint in waypoints_list:
-                if step <= waypoint[0]:
+                if t <= waypoint[0]:
                     current_waypoint = waypoint
                     break
+
             if current_waypoint is None:
                 # Reached the end of the trajectory
                 break
@@ -72,20 +82,17 @@ class Mav():
                                                 0, 0, 0,
                                                 yaw, 0)
             time.sleep(0.1)
-            step += 0.1
-
+            t += 0.1
 
     def checkACK(self):
         #wait to see if the matching message was present in the data stream
-        ACK = self.drone.wait_for_message(MAVLINK_MSG_ID_DO_ACKNOWLEDGE, timeout=1.0)
-        if ACK:
-            #there is matching message in the data stream and it ready to be read out
-            ACK = self.drone.recvmsg().get_payload()[1]
-            #confirm that command was sent to ardupilot
-            if ACK == mavutil.mavlink.MAV_RESULT_ACCEPTED:
-                return True
-            else:
-                return False
+        while ACK_msg != None and self.timeout(5):
+            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = ACK_msg.result
+        if ACK == 0:
+            return True
+        else:
+            return False
     #take off func
     def takeoff(self, altitude):
         # all the altitude use is in meter
@@ -182,9 +189,37 @@ class Mav():
                     ACK =  False
                     break
         return ACK
+    #RLT mode
+    #land mode
+    def RTL(self):
+        self.drone.mav.command_long_send(
+            self.drone.target_system,
+            self.drone.target_component,
+            mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH,
+            0,  # Confirmation
+            0,  # Empty parameters (might vary for specific needs)
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        )
+        if self.checkACK():
+            while True:
+                #check for alt
+                instance_ALT = self.getValue("ALT")
+                if  instance_ALT == 0.1:
+                    #send ACK bit
+                    ACK  = True
+                    break
+                else:
+                    ACK =  False
+                    break
+        return ACK
+
 
     ############### MISSION FUNCTION #################
-
     def creatorCsv(self,shapeName,diameterCir,alt,distance,posXMaster=0,posYMaster=0):
         num_repeats = 1
         shape_name=shapeName
@@ -198,7 +233,6 @@ class Mav():
         hold_time = 4.0 #s
         step_time = 0.05 #s
         output_file = "shapes/active.csv"
-
         create_active_csv(
             shape_name=shape_name,
             num_repeats=num_repeats,
@@ -213,7 +247,6 @@ class Mav():
             step_time = step_time,
             output_file = output_file,
         )
-
     def readWaypoints(self,path_to_csv):
         #-----------------------------------Read the waypoints from the CSV file-----------------------------------#
         print("[INFO] Reading waypoints from the CSV file...")
@@ -243,17 +276,14 @@ class Mav():
         self.takeoff(float(alt))
         time.sleep(3)
         self.performMission(waypoints_list, yaw)
-        # get time out value
-        time_out = waypoints_list[-1][0]  # Total step is the time of the last waypoint
         # return ACK bit after finish the mission
         return True
-
-
-
+    
     def recvMsgResp(self):
         while True:        
             msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout = 2)
             msgGps = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = 2)
+            
             if msg != None :
                 if msg.get_srcSystem() == self.targetSys:       
                     self.msg = msg
@@ -264,56 +294,48 @@ class Mav():
                     self.msgGps = msgGps
             else:
                 self.msgGps = None
+            # if msgYaw != None :
+            #     if msgYaw.get_srcSystem() == 1:       
+            #         self.msgYaw = msgYaw
+            # else:
+            #     self.msgYaw = None
     #get value
-    #user input in a ;ist of data and para user wanna take out
-    #The function will scan through all the para and get all the info need for the listed para
-    #then it will sum it up in a dict and output that out for other func to use
     def getValue(self,param):
-        #scan for all the Attribute in the param_group, how to check?
-        #how can we sure that all the data that we receive is right with the attribute?
-        #create and empty dict that store all the data
-        dict_data = {}
-        #dict for condition
         # ALT func 
-        if "ALT"  == param:
-            if self.msg:
-                #get only the needed data for the need of using
-                return self.msg.altitude_relative 
+        if param == "ALT":
+            while msgAlt != None or self.timeout(3) != True:
+                msgAlt = self.drone.recv_match(type='ATTITUDE', blocking=True, timeout = 2)
+            if msgAlt:
+                outputData = msgAlt.altitude_relative 
             else:
-                return None
+                outputData = None
         # GPS func
-        elif "GPS" == param :
-            gps = [0]*2
-            #Scan the data stream and search for GPS coordinate
-            if self.msgGps:
-                    #Scan the data and take only lat lon and alt data that needed for the position estimation
-                gps[0]= self.msgGps.lon/ 1e7
-                gps[1]= self.msgGps.lat/ 1e7
-
-                return gps
+        elif param == "GPS":
+            while msgGps  != None or self.timeout(3) != True:
+                msgGps = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = 2)
+            if msgGps:
+                gps = [0]*2
+                #Scan the data stream and search for GPS coordinate
+                gps[0]= msgGps.lon/ 1e7
+                gps[1]= msgGps.lat/ 1e7
+                outputData = gps
             else:
-                gps = [None,None]
-                return gps
+                outputData = None
         # Battery check up func
-        elif "BAT" == param :
-            if self.msg:
-                #get only the needed data for the need of using
-                return self.msg.battery_remaining
-                
+        elif param == "BAT" and msgSys:
+            while msgSys != None or self.timeout(3) != True:
+                msgSys = self.drone.recv_match(type='BATTERY_STATUS', blocking=True, timeout = 2)
+            if msgSys:
+                outputData = msgSys.battery_remaining
             else:
-                return None
-        elif "SENSOR_STATE" == param:
-            if self.msg:
-                return self.msg.onboard_control_sensors_health
-            else:
-                return None
+                outputData = None
+        #elif param == "SENSOR_STATE" and msgSys:
+        #    outputData = msgSYS.onboard_control_sensors_health
         elif param == "YAW":
-            msg = self.drone.recv_match(type='ATTITUDE', blocking=True, timeout = 5)
+            self.msgYaw = self.drone.recv_match(type='ATTITUDE', blocking=True, timeout = 5)
             # Extract yaw value from the ATTITUDE message
-            if msg:
-                return msg.yaw
+            if self.msgYaw:
+                return self.msgYaw.yaw
             else:
                 return None
-
-    def setPara(self):
-        pass
+        return outputData
