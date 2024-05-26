@@ -30,6 +30,7 @@ class Master(object):
         self.completedCheck = False
         self.droneCompleted = 0
         self.missionDone = False 
+
     def masterConnectBroker(self):  
         print("Enter master")
         #Create a client to receive the message last will from the drones
@@ -70,13 +71,22 @@ class Master(object):
         self.masterRecvLW.Client.disconnect(reasonCodes.ReasonCodes( packetTypes.PacketTypes.DISCONNECT, "Disconnect", 4))
 
     def masterSendCommand(self,queueDataSend):
-        if (not queueDataSend.empty()) and (self.droneConnected == self.droneNumber):
+        if (not queueDataSend.empty()): #and (self.droneConnected == self.droneNumber):
             dataSend = queueDataSend.get()
             custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
             custom_properties.UserProperty = [("typeMsg",CMD)]
             #Send all command
             self.Master.publishMsg(topic= DRONE_COM, payload= dataSend, prop =custom_properties)          
             print("[DEBUG] Master sends message") 
+
+    def masterSendPriorityCommand(self,queueDataSend):
+        if (not queueDataSend.empty()): 
+            dataSend = queueDataSend.get()
+            custom_properties = props.Properties( packetTypes.PacketTypes.PUBLISH)
+            custom_properties.UserProperty = [("typeMsg",PRIORITY)]
+            #Send all command
+            self.Master.publishMsg(topic= DRONE_COM, payload= dataSend, prop =custom_properties)          
+            print("[DEBUG] Master sends priority message") 
     
     def MasterReceiveLW(self,masterLW:MQTTProtocol,topic):
         # Initial the Client to receive command 
@@ -88,6 +98,7 @@ class Master(object):
         if not self.masterRecvLW.queueData.empty():
             message = self.masterRecvLW.queueData.get()
             properties = dict(message.properties.UserProperty)
+
             if properties['typeMsg'] == LSTWILLMSG:             
                 msgLstWil= message.payload.decode()
                 self.droneConnected += int(msgLstWil) 

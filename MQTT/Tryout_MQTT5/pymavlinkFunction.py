@@ -20,14 +20,15 @@ import time
 class Mav(object):
     #contain only the fucntion to run all the pymavlink msg needed
     #no computational involve and only take in basic data 
-    def __init__(self,targSys,ip):
+    def __init__(self,targSys,ip,parent):
 
         self.ip = ip
         self.targetSys = targSys
+        self.parent = parent
         #set up the connection when the class being create 
         self.drone  = mavutil.mavlink_connection(ip)
-        self.drone.target_system = targSys  # Thiết lập System ID cho drone1
-        self.drone.target_component = 1  # Thiết lập Component ID cho drone1
+        self.drone.target_system = targSys  # Establish System ID for drone1
+        self.drone.target_component = 1  # Establish Component ID for drone1
         #setup as the drone is waiting on connect, wait for the confirm heartbeat before doing anything
         self.drone.wait_heartbeat()
         print("Heartbeat from system (system %u component %u)" % (self.drone.target_system, self.drone.target_component))
@@ -44,8 +45,7 @@ class Mav(object):
     def performMission(self, waypoints_list, yaw):
         total_duration = waypoints_list[-1][0]  # Total duration is the time of the last waypoint
         t = 0  # Time variable
-
-        while t <= total_duration:
+        while t <= total_duration and self.parent.eFlag == False:
             # Find the current waypoint based on time
             current_waypoint = None
             for waypoint in waypoints_list:
@@ -73,11 +73,6 @@ class Mav(object):
             time.sleep(0.1)
             t += 0.1
 
-    def checkACK(self):
-        while True:
-
-            msg = self.drone.recv_match(type= "COMMAND_ACK",blocking = True)
-            print(msg)
 
     #take off func
     def takeoff(self, altitude):
@@ -112,6 +107,7 @@ class Mav(object):
             0, 
             0
         )
+
     
     #Setmode func
     def setMode(self, mode):
@@ -145,11 +141,41 @@ class Mav(object):
             0
         )
 
+    def RTL(self):
+        self.drone.mav.command_long_send(
+            self.drone.target_system,
+            self.drone.target_component,
+            mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH,
+            0,
+            0,
+            0, 
+            0, 
+            0, 
+            0, 
+            0, 
+            0
+        )
+
+    def checkACK(self):
+        while True: 
+            #wait to see if the matching message was present in the data stream
+            ack = self.drone.recv_match(type='COMMAND_ACK', blocking=True, timeout=1.0)
+            if ack != None:
+                #there is matching message in the data stream and it ready to be read out
+                ack = ack.result 
+                print("ack2=",ack)
+                if ack == 0:          
+                    print("[INFO] Command executed successfully")
+                    return True
+                else:
+                    return False
+            
     def recvMsgResp(self):
         while True:        
             msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout = 2)
             msgGps = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = 2)
-            
+            # ack = self.drone.recv_match(type='COMMAND_ACK', blocking=True, timeout=1.0)
+
             if msg != None :
                 if msg.get_srcSystem() == self.targetSys:       
                     self.msg = msg
@@ -160,12 +186,13 @@ class Mav(object):
                     self.msgGps = msgGps
             else:
                 self.msgGps = None
-            # if msgYaw != None :
-            #     if msgYaw.get_srcSystem() == 1:       
-            #         self.msgYaw = msgYaw
+
+            # if ack != None :
+            #     if ack.get_srcSystem() == self.targetSys:       
+            #         self.ack = ack
+            #         print("[DEBUG] Ack = ", ack)
             # else:
-            #     self.msgYaw = None
-    #get value
+            #     self.ack = None
     #user input in a ;ist of data and para user wanna take out
     #The function will scan through all the para and get all the info need for the listed para
     #then it will sum it up in a dict and output that out for other func to use
