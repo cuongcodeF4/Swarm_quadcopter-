@@ -27,7 +27,7 @@ class droneInstance(object):
         self.clientRecvMsg = MQTTProtocol(client_id = "LasWil:" + self.drone)
         thdRevDataFromMaster = threading.Thread(target= self.receive_data, args=(self.clientRecvMsg,DRONE_COM,)) 
         thdRevDataFromMaster.start()
-        self.clientInit    = MQTTProtocol(client_id="Init:"+self.drone)
+        self.clientInit    = MQTTProtocol(client_id="Init:"+self.drone, parent= self)
         self.clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
 
         self.clientSendInfo   = MQTTProtocol(client_id="Info:"+self.drone)
@@ -44,6 +44,7 @@ class droneInstance(object):
         self.preX = 0
         self.preY = 0
         self.droneCompleted = 0
+        self.eFlag = False
 
     def receive_data(self,Drone:MQTTProtocol,topic):
         # Initial the Client to receive command 
@@ -63,6 +64,16 @@ class droneInstance(object):
                 print("[DEBUG]{} vs {}".format(self.droneConnected,DRONE_NUMBER))
                 if self.droneConnected == DRONE_NUMBER:
                     self.queueCmd.put(msg_recv_dict)      
+
+            elif properties['typeMsg'] == PRIORITY: 
+                self.eFlag = True
+                msg_recv= message.payload.decode()
+                msg_recv_dict = ujson.loads(msg_recv)    
+                print("[DEBUG] Received priority message")
+                handlePriorityCmd = threading.Thread(target=self.decodeCmd , args=(msg_recv_dict,))
+                handlePriorityCmd.start()
+
+
 
             elif properties['typeMsg'] == MASTERLSTWIL: 
                 msgInit= message.payload.decode()
@@ -110,6 +121,7 @@ class droneInstance(object):
                         self.yawMainDrone = msgReport["YAW"]
                 except Exception as e:
                     print("An error occurred when get GPS value:", e)
+
             elif properties['typeMsg'] == INFO:
                 msgInfo = message.payload.decode()
                 self.droneCompleted += int(msgInfo)
@@ -182,6 +194,7 @@ class droneInstance(object):
                     time.sleep(5)
                     print("[INFO] Performing the mission...")
                     self.clientInit.droneMavLink.performMission(waypoints_list, yawDr)
+                    print("[INFO] Perform mission completed...")    
             self.clientSendInfo.droneSendInfo(DRONE_COM,DONE)
                     
                  
@@ -207,6 +220,17 @@ class droneInstance(object):
                 elif self.HANDLE_DATA["CMD"] == "Prepare act":
                     pass
             self.clientSendInfo.droneSendInfo(DRONE_COM,DONE)
+        elif command["TYPE"] == PRIORITY:
+            print("[DEBUG] Start command priority")
+            #get the command
+            self.HANDLE_DATA = command["ALL_CMD"] #this become a dictionary
+            if self.HANDLE_DATA["CMD"] == "Land":
+                print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
+                self.firstTime = False
+                self.clientInit.droneMavLink.land(0,0)
+            else:
+                time.sleep(2)
+            self.eFlag = False
 
     def readWaypoints(self,path_to_csv):
         #-----------------------------------Read the waypoints from the CSV file-----------------------------------#

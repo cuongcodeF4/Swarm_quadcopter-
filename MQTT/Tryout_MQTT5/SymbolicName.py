@@ -40,3 +40,4 @@ ON  = 1
 OFF = 0
 ALL = "ALL"
 UNIT = "UNIT"
+PRIORITY = "PRIORITY"

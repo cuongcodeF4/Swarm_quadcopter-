@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1015</width>
+    <width>987</width>
     <height>920</height>
    </rect>
   </property>
@@ -417,6 +417,12 @@
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
+         <property name="minimumSize">
+          <size>
+           <width>750</width>
+           <height>0</height>
+          </size>
+         </property>
          <property name="layoutDirection">
           <enum>Qt::LeftToRight</enum>
          </property>
@@ -426,7 +432,7 @@
          <property name="frameShadow">
           <enum>QFrame::Plain</enum>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,3,4">
+         <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0,4">
           <item alignment="Qt::AlignHCenter">
            <widget class="QLabel" name="Title">
             <property name="sizePolicy">
@@ -1327,6 +1333,30 @@
                </property>
               </widget>
              </item>
+             <item row="2" column="8" colspan="2">
+              <widget class="QPushButton" name="bntStopMission">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>1</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>120</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>12</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>STOP MISSION</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>
@@ -1377,8 +1407,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1015</width>
-     <height>26</height>
+     <width>987</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>

@@ -14,7 +14,7 @@ from datetime import datetime
 from pymavlinkFunction import *
 
 class MQTTProtocol(object):
-    def __init__(self,client_id,broker="mqtt.eclipseprojects.io",port =1883,username="swarmDrone",password="flyIsOkay"):
+    def __init__(self,client_id, parent= None,broker="mqtt.eclipseprojects.io",port =1883,username="swarmDrone",password="flyIsOkay"):
         # self.uiSysDrone = MyWindow()
         self.client_id = client_id
         self.broker = broker
@@ -26,6 +26,7 @@ class MQTTProtocol(object):
         self.queueData  = Queue()
         self.log = Queue()
         self.status = CONNECT_FAILED
+        self.parent = parent
 
     def connectBroker(self,prop=None,typeClient=TYPE_CLIENT_NORMAL):
         
@@ -72,7 +73,8 @@ class MQTTProtocol(object):
         #result: [0, 1]
         status = resultPub[0]
         if status == 0:
-             print(f"[INFO] Message <`{payload}`> sent to topic:`{topic}`")
+            #  print(f"[INFO] Message <`{payload}`> sent to topic:`{topic}`")
+            pass
         else:
              print(f"[ERROR] Failed to send message to topic {topic}")
 
@@ -98,6 +100,7 @@ class MQTTProtocol(object):
         propInit.UserProperty =[("typeMsg",INITMSG),("nameDrone",self.client_id)]
         self.Client.publish(topic= topic, payload=ADD_CONNECT, qos=2,retain=False,properties=propInit)
         # self.Client.loop_stop()
+        
     def droneSendInfo(self,topic,info):
         print("[DEBUG] Drone start send info...")
         idDrone = self.client_id.split(":")[1]
@@ -114,7 +117,7 @@ class MQTTProtocol(object):
 
     def sendFeedbackInfo(self,lock,targSys,ip):
         with lock:
-            self.droneMavLink = Mav(targSys=targSys, ip= ip)
+            self.droneMavLink = Mav(targSys=targSys, ip= ip,parent = self.parent)
             getBatThread = threading.Thread(target= self.droneMavLink.recvMsgResp)
             getBatThread.start()
             #init the base data when recycle

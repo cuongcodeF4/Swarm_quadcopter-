@@ -36,6 +36,9 @@ from uiSystemDrone import Ui_MainWindow
 #     def run(self):
 #         while True:
 #             self.function()
+
+
+
 class MasterInit(QThread):
     updateButton      = pyqtSignal()
     updateConsoleLog  = pyqtSignal(str,str)
@@ -127,13 +130,14 @@ class MyWindow(QMainWindow):
         self.ShapeList = ["Choose the shape","Circle","Square","straight line"]       
         self.ui.shapeComboBox.addItems(self.ShapeList)
 
-        self.typeList = ["All Drones","One Drone"]       
+        self.typeList = ["All Drones","One Drone","Priority"]       
         self.ui.typeControlComboBox.addItems(self.typeList)
         self.ui.typeControlComboBox.activated.connect(self.enableSelectDrone)
         self.ui.shapeComboBox.activated.connect(self.enableCommandMission)
         self.ui.startMaster.clicked.connect(self.runMaster)
         self.ui.stopMaster.clicked.connect(self.stopMaster)
         self.ui.bntSendCommand.clicked.connect(self.sendCommand)
+        self.ui.bntStopMission.clicked.connect(self.stopMission)
         # Variable to check if master online is do something  
         self.run = 0 
         # Variable to get name command to display on command pending area after send command
@@ -181,8 +185,12 @@ class MyWindow(QMainWindow):
             self.typeCmd = UNIT
             self.ui.Drone.setEnabled(True)
             self.ui.droneNrmControlLineEdit.setEnabled(True)
-        else:
+        elif selected_type == "All Drones":
             self.typeCmd = ALL 
+            self.ui.Drone.setEnabled(False)
+            self.ui.droneNrmControlLineEdit.setEnabled(False)
+        elif selected_type == "Priority":
+            self.typeCmd = PRIORITY
             self.ui.Drone.setEnabled(False)
             self.ui.droneNrmControlLineEdit.setEnabled(False)
         
@@ -200,6 +208,17 @@ class MyWindow(QMainWindow):
     def DATA_ALL_TYPE(self,CMD, PARA=10, ALT=None, LON=None, LAT=None):
             return {
                 "TYPE" : ALL,
+                "ALL_CMD" : {
+                    "CMD" : CMD,
+                    "PARA": PARA,
+                    "ALT" : ALT,
+                    "LON" : LON,
+                    "LAT" : LAT}
+            }
+    
+    def DATA_PRIORITY_TYPE(self,CMD = None, PARA=10, ALT=None, LON=None, LAT=None):
+            return {
+                "TYPE" : PRIORITY ,
                 "ALL_CMD" : {
                     "CMD" : CMD,
                     "PARA": PARA,
@@ -239,6 +258,8 @@ class MyWindow(QMainWindow):
                 elif self.typeCmd == UNIT:
                     droneSelected = self.ui.droneNrmControlLineEdit.text()
                     self.payload = self.DATA_UNIT_TYPE(droneSelected,cmd,para,alt,long,lat)
+                elif self.typeCmd == PRIORITY:
+                    self.payload = self.DATA_PRIORITY_TYPE(cmd,para,alt,long,lat)
 
         # Send a shape to drones follow 
         else:
@@ -249,7 +270,12 @@ class MyWindow(QMainWindow):
             long  =  self.ui.longValue.text()
             lat   =  self.ui.latValue.text()
             self.payload = self.DATA_ALL_TYPE(cmd,para,alt,long,lat)
-
+    def stopMission(self):
+        self.payload = self.DATA_PRIORITY_TYPE()
+        self.dataSend.put(ujson.dumps(self.payload))
+        # Call function masterSendCommand from Sender.py to send payload to drones
+        self.master.masterSendPriorityCommand(self.dataSend)
+        print("Queue size after clearing:", self.dataSend.qsize())  
     def sendCommand(self):
         self.addCommand()
         # Check master online?
@@ -269,15 +295,23 @@ class MyWindow(QMainWindow):
                     self.printLog("WARNING","Please enter altitude value!")
                     QMessageBox.warning(self, "Warning", "Please enter altitude value!")        
             else:
-                #Checking the drone number are enough?
-                    if self.master.droneConnected == self.num_drones:
-                        # Add command to command pending table 
-                        self.ui.commandPending.append(self.currentCmd)
+                    if self.typeCmd == PRIORITY:
                         # Convert payload to ujon format
                         self.dataSend.put(ujson.dumps(self.payload))
-                    # Call function masterSendCommand from Sender.py to send payload to drones
-                    self.master.masterSendCommand(self.dataSend)
-                    print("Queue size after clearing:", self.dataSend.qsize())  
+                        # Call function masterSendCommand from Sender.py to send payload to drones
+                        self.master.masterSendPriorityCommand(self.dataSend)
+                        print("Queue size after clearing:", self.dataSend.qsize())  
+                    else:
+                        #Checking the drone number are enough?
+                        if self.master.droneConnected == self.num_drones:
+                            # Add command to command pending table 
+                            self.ui.commandPending.append(self.currentCmd)
+                            # Convert payload to ujon format
+                            self.dataSend.put(ujson.dumps(self.payload))
+                        # Call function masterSendCommand from Sender.py to send payload to drones
+                        self.master.masterSendCommand(self.dataSend)
+                        print("Queue size after clearing:", self.dataSend.qsize())  
+                
             return
 
     def removeCmdPending(self):
