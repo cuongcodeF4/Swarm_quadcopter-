@@ -320,7 +320,7 @@ class Mav(object):
     def getValue(self,param):
         # ALT func 
         if param == "ALT":
-            while msgAlt != None or self.timeout(3) != True:
+            while msgAlt == None or self.timeout(3) != True:
                 msgAlt = self.drone.recv_match(type='ATTITUDE', blocking=True, timeout = 2)
             if msgAlt:
                 outputData = msgAlt.altitude_relative 
@@ -328,7 +328,7 @@ class Mav(object):
                 outputData = None
         # GPS func
         elif param == "GPS":
-            while msgGps  != None or self.timeout(3) != True:
+            while msgGps  == None or self.timeout(3) != True:
                 msgGps = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = 2)
             if msgGps:
                 gps = [0]*2
@@ -340,7 +340,7 @@ class Mav(object):
                 outputData = None
         # Battery check up func
         elif param == "BAT" and msgSys:
-            while msgSys != None or self.timeout(3) != True:
+            while msgSys == None or self.timeout(3) != True:
                 msgSys = self.drone.recv_match(type='BATTERY_STATUS', blocking=True, timeout = 2)
             if msgSys:
                 outputData = msgSys.battery_remaining
