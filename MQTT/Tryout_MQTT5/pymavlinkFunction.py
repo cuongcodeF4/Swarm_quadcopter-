@@ -113,19 +113,20 @@ class Mav(object):
         #check to see if the command was send successful
         #scan for the ACK msg
         #what if the drone never reach the wanted high? 
-        if self.checkACK():
+        #check ACK
+        while ACK_msg == None and self.timeout(5):
+            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = ACK_msg.result
+        if ACK == 0:
             while True:
                 #check for alt
                 instance_ALT = self.getValue("ALT")
                 if  altitude - 0.1 < instance_ALT < altitude + 0.1:
                     #send ACK bit
-                    ACK  = True
-                    break
+                    print("DEBUG: MISSION SUCCESSFUL!")
+                    return True
                 else:
-                    ACK =  False
-                    break
-        return ACK
-    
+                    return False
     #Arm func
     def arm(self, state):
         # arm is 1 and disarm is 0 on the state bit
@@ -142,7 +143,14 @@ class Mav(object):
             0, 
             0
         )
-        return self.checkACK()
+        while ACK_msg == None and self.timeout(5):
+            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = ACK_msg.result
+        if ACK == 0:
+            print("DEBUG: MISSION SUCCESSFUL!")
+            return True
+        else:
+            return False
     
     #Setmode func
     def setMode(self, mode):
@@ -160,7 +168,14 @@ class Mav(object):
             0, 
             0
         )
-        return self.checkACK()
+        while ACK_msg == None and self.timeout(2):
+            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = ACK_msg.result
+        if ACK == 0:
+            print("DEBUG: MISSION SUCCESSFUL!")
+            return True
+        else:
+            return False
     
     #land mode
     def land(self, decentSpeed, maxDecentAngle):
@@ -177,18 +192,19 @@ class Mav(object):
             0, 
             0
         )
-        if self.checkACK():
+        while ACK_msg == None and self.timeout(5):
+            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = ACK_msg.result
+        if ACK == 0:
             while True:
                 #check for alt
                 instance_ALT = self.getValue("ALT")
-                if  instance_ALT == 0.1:
+                if instance_ALT < 0.1:
                     #send ACK bit
-                    ACK  = True
-                    break
+                    print("DEBUG: MISSION SUCCESSFUL!")
+                    return True
                 else:
-                    ACK =  False
-                    break
-        return ACK
+                    return False
     #RLT mode
     #land mode
     def RTL(self):
@@ -205,18 +221,19 @@ class Mav(object):
             0,
             0
         )
-        if self.checkACK():
+        while ACK_msg == None and self.timeout(5):
+            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = ACK_msg.result
+        if ACK == 0:
             while True:
                 #check for alt
                 instance_ALT = self.getValue("ALT")
-                if  instance_ALT == 0.1:
+                if  instance_ALT < 0.1:
                     #send ACK bit
-                    ACK  = True
-                    break
+                    print("DEBUG: MISSION SUCCESSFUL!")
+                    return True
                 else:
-                    ACK =  False
-                    break
-        return ACK
+                    return False
 
 
     ############### MISSION FUNCTION #################
