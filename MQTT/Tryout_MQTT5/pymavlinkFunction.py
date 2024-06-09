@@ -35,11 +35,20 @@ class Mav(object):
         self.drone.wait_heartbeat()
         print("Heartbeat from system (system %u component %u)" % (self.drone.target_system, self.drone.target_component))
         self.wait_drone_ready()
+        #ACK bit
+        self.ACK_msg = None 
+        #timer variable
+        self.timerInit = True
+
 
     def timeout(self, timeOutDuration):
-        endTime = time.time() + timeOutDuration
+        if self.timerInit:
+            endTime = time.time() + timeOutDuration
+            self.timerInit = False
         currentTime = time.time()
         if currentTime >= endTime:
+            #reset timer
+            self.timerInit = True
             return True
         else:
             return False
@@ -83,16 +92,6 @@ class Mav(object):
                                                 yaw, 0)
             time.sleep(0.1)
             t += 0.1
-
-    def checkACK(self):
-        #wait to see if the matching message was present in the data stream
-        while ACK_msg != None and self.timeout(5):
-            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = ACK_msg.result
-        if ACK == 0:
-            return True
-        else:
-            return False
     #take off func
     def takeoff(self, altitude):
         # all the altitude use is in meter
@@ -114,9 +113,9 @@ class Mav(object):
         #scan for the ACK msg
         #what if the drone never reach the wanted high? 
         #check ACK
-        while ACK_msg == None and self.timeout(5):
-            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = ACK_msg.result
+        while self.ACK_msg == None and self.timeout(5):
+            self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = self.ACK_msg.result
         if ACK == 0:
             while True:
                 #check for alt
@@ -126,6 +125,7 @@ class Mav(object):
                     print("DEBUG: MISSION SUCCESSFUL!")
                     return True
                 else:
+                    print("DEBUG: MISSION FAIL TO SEND!")
                     return False
     #Arm func
     def arm(self, state):
@@ -143,13 +143,14 @@ class Mav(object):
             0, 
             0
         )
-        while ACK_msg == None and self.timeout(5):
-            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = ACK_msg.result
+        while self.ACK_msg == None and self.timeout(5):
+            self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = self.ACK_msg.result
         if ACK == 0:
             print("DEBUG: MISSION SUCCESSFUL!")
             return True
         else:
+            print("DEBUG: MISSION FAIL TO SEND!")
             return False
     
     #Setmode func
@@ -168,14 +169,16 @@ class Mav(object):
             0, 
             0
         )
-        while ACK_msg == None and self.timeout(2):
-            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = ACK_msg.result
+        while self.ACK_msg == None and self.timeout(2):
+            self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = self.ACK_msg.result
         if ACK == 0:
             print("DEBUG: MISSION SUCCESSFUL!")
             return True
         else:
+            print("DEBUG: MISSION FAIL TO SEND")
             return False
+        
     
     #land mode
     def land(self, decentSpeed, maxDecentAngle):
@@ -192,9 +195,9 @@ class Mav(object):
             0, 
             0
         )
-        while ACK_msg == None and self.timeout(5):
-            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = ACK_msg.result
+        while self.ACK_msg == None and self.timeout(2):
+            self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = self.ACK_msg.result
         if ACK == 0:
             while True:
                 #check for alt
@@ -204,6 +207,7 @@ class Mav(object):
                     print("DEBUG: MISSION SUCCESSFUL!")
                     return True
                 else:
+                    print("DEBUG: MISSION FAIL TO SEND")
                     return False
     #RLT mode
     #land mode
@@ -221,9 +225,9 @@ class Mav(object):
             0,
             0
         )
-        while ACK_msg == None and self.timeout(5):
-            ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = ACK_msg.result
+        while self.ACK_msg == None and self.timeout(2):
+            self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
+        ACK = self.ACK_msg.result
         if ACK == 0:
             while True:
                 #check for alt
@@ -233,6 +237,7 @@ class Mav(object):
                     print("DEBUG: MISSION SUCCESSFUL!")
                     return True
                 else:
+                    print("DEBUG: MISSION FAIL TO SEND")
                     return False
 
 
@@ -300,7 +305,6 @@ class Mav(object):
         while True:        
             msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout = 2)
             msgGps = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = 2)
-            
             if msg != None :
                 if msg.get_srcSystem() == self.targetSys:       
                     self.msg = msg
@@ -320,7 +324,7 @@ class Mav(object):
     def getValue(self,param):
         # ALT func 
         if param == "ALT":
-            while msgAlt == None or self.timeout(3) != True:
+            while msgAlt == None and self.timeout(2) != True:
                 msgAlt = self.drone.recv_match(type='ATTITUDE', blocking=True, timeout = 2)
             if msgAlt:
                 outputData = msgAlt.altitude_relative 
@@ -328,7 +332,7 @@ class Mav(object):
                 outputData = None
         # GPS func
         elif param == "GPS":
-            while msgGps  == None or self.timeout(3) != True:
+            while msgGps  == None and self.timeout(2) != True:
                 msgGps = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = 2)
             if msgGps:
                 gps = [0]*2
@@ -340,7 +344,7 @@ class Mav(object):
                 outputData = None
         # Battery check up func
         elif param == "BAT" and msgSys:
-            while msgSys == None or self.timeout(3) != True:
+            while msgSys == None and self.timeout(2) != True:
                 msgSys = self.drone.recv_match(type='BATTERY_STATUS', blocking=True, timeout = 2)
             if msgSys:
                 outputData = msgSys.battery_remaining
