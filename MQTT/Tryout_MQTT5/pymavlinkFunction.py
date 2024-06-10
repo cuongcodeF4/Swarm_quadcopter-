@@ -47,7 +47,7 @@ class Mav(object):
             self.timerInit = False
         currentTime = time.time()
         if currentTime >= endTime:
-            #reset timer
+            #reset timer when timer init
             self.timerInit = True
             return True
         else:
@@ -113,20 +113,25 @@ class Mav(object):
         #scan for the ACK msg
         #what if the drone never reach the wanted high? 
         #check ACK
-        while self.ACK_msg == None and self.timeout(5):
+        while self.ACK_msg == None and self.timeout(2) != True:
             self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = self.ACK_msg.result
-        if ACK == 0:
-            while True:
-                #check for alt
-                instance_ALT = self.getValue("ALT")
-                if  altitude - 0.1 < instance_ALT < altitude + 0.1:
-                    #send ACK bit
-                    print("DEBUG: MISSION SUCCESSFUL!")
-                    return True
-                else:
-                    print("DEBUG: MISSION FAIL TO SEND!")
-                    return False
+        #if successful receive the ACK msg
+        if self.ACK_msg is not None and self.ACK_msg:
+            ACK = self.ACK_msg.result
+            if ACK == 0:
+                while True:
+                    #check for alt
+                    instance_ALT = self.getValue("ALT")
+                    if altitude - 0.1 < instance_ALT < altitude + 0.1:
+                        #send ACK bit
+                        print("DEBUG: MISSION SUCCESSFUL!")
+                        return True
+                    else:
+                        print("DEBUG: MISSION FAIL TO SEND")
+                        return False
+        else:
+            print("DEBUG: NO ACK FOUND!")
+            return False
     #Arm func
     def arm(self, state):
         # arm is 1 and disarm is 0 on the state bit
@@ -143,14 +148,20 @@ class Mav(object):
             0, 
             0
         )
-        while self.ACK_msg == None and self.timeout(5):
+        while self.ACK_msg == None and self.timeout(2) != True:
             self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = self.ACK_msg.result
-        if ACK == 0:
-            print("DEBUG: MISSION SUCCESSFUL!")
-            return True
+        #if successful receive the ACK msg
+        if self.ACK_msg is not None and self.ACK_msg:
+            ACK = self.ACK_msg.result
+            if ACK == 0:
+                #send ACK bit
+                print("DEBUG: MISSION SUCCESSFUL!")
+                return True
+            else:
+                print("DEBUG: MISSION FAIL TO SEND")
+                return False
         else:
-            print("DEBUG: MISSION FAIL TO SEND!")
+            print("DEBUG: NO ACK FOUND!")
             return False
     
     #Setmode func
@@ -169,14 +180,20 @@ class Mav(object):
             0, 
             0
         )
-        while self.ACK_msg == None and self.timeout(2):
+        while self.ACK_msg == None and self.timeout(2) != True:
             self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = self.ACK_msg.result
-        if ACK == 0:
-            print("DEBUG: MISSION SUCCESSFUL!")
-            return True
+        #if successful receive the ACK msg
+        if self.ACK_msg is not None and self.ACK_msg:
+            ACK = self.ACK_msg.result
+            if ACK == 0:
+                #send ACK bit
+                print("DEBUG: MISSION SUCCESSFUL!")
+                return True
+            else:
+                print("DEBUG: MISSION FAIL TO SEND")
+                return False
         else:
-            print("DEBUG: MISSION FAIL TO SEND")
+            print("DEBUG: NO ACK FOUND!")
             return False
         
     
@@ -195,20 +212,28 @@ class Mav(object):
             0, 
             0
         )
-        while self.ACK_msg == None and self.timeout(2):
+        while self.ACK_msg == None and self.timeout(2) !=True :
             self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = self.ACK_msg.result
-        if ACK == 0:
-            while True:
-                #check for alt
-                instance_ALT = self.getValue("ALT")
-                if instance_ALT < 0.1:
-                    #send ACK bit
-                    print("DEBUG: MISSION SUCCESSFUL!")
-                    return True
-                else:
-                    print("DEBUG: MISSION FAIL TO SEND")
-                    return False
+        #if successful receive the ACK msg
+        if self.ACK_msg is not None and self.ACK_msg:
+            ACK = self.ACK_msg.result
+            if ACK == 0:
+                while True:
+                    #check for alt
+                    instance_ALT = self.getValue("ALT")
+                    if instance_ALT < 0.1:
+                        #send ACK bit
+                        print("DEBUG: MISSION SUCCESSFUL!")
+                        return True
+                    else:
+                        print("DEBUG: MISSION FAIL TO SEND")
+                        return False
+        else:
+            print("DEBUG: NO ACK FOUND!")
+            return False
+
+
+        
     #RLT mode
     #land mode
     def RTL(self):
@@ -225,20 +250,25 @@ class Mav(object):
             0,
             0
         )
-        while self.ACK_msg == None and self.timeout(2):
+        while self.ACK_msg == None and self.timeout(2) != True:
             self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
-        ACK = self.ACK_msg.result
-        if ACK == 0:
-            while True:
-                #check for alt
-                instance_ALT = self.getValue("ALT")
-                if  instance_ALT < 0.1:
-                    #send ACK bit
-                    print("DEBUG: MISSION SUCCESSFUL!")
-                    return True
-                else:
-                    print("DEBUG: MISSION FAIL TO SEND")
-                    return False
+        #if successful receive the ACK msg
+        if self.ACK_msg is not None and self.ACK_msg:
+            ACK = self.ACK_msg.result
+            if ACK == 0:
+                while True:
+                    #check for alt
+                    instance_ALT = self.getValue("ALT")
+                    if instance_ALT < 0.1:
+                        #send ACK bit
+                        print("DEBUG: MISSION SUCCESSFUL!")
+                        return True
+                    else:
+                        print("DEBUG: MISSION FAIL TO SEND")
+                        return False
+        else:
+            print("DEBUG: NO ACK FOUND!")
+            return False
 
 
     ############### MISSION FUNCTION #################
@@ -324,9 +354,9 @@ class Mav(object):
     def getValue(self,param):
         # ALT func 
         if param == "ALT":
-            while msgAlt == None and self.timeout(2) != True:
-                msgAlt = self.drone.recv_match(type='ATTITUDE', blocking=True, timeout = 2)
-            if msgAlt:
+            while msgAlt is None and self.timeout(2) != True:
+                msgAlt = self.drone.recv_match(type='ALTITUDE', blocking=True, timeout = 2)
+            if msgAlt is not None and msgAlt:
                 outputData = msgAlt.altitude_relative 
             else:
                 outputData = None
@@ -334,7 +364,7 @@ class Mav(object):
         elif param == "GPS":
             while msgGps  == None and self.timeout(2) != True:
                 msgGps = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = 2)
-            if msgGps:
+            if msgGps is not None and msgGps:
                 gps = [0]*2
                 #Scan the data stream and search for GPS coordinate
                 gps[0]= msgGps.lon/ 1e7
@@ -346,7 +376,7 @@ class Mav(object):
         elif param == "BAT" and msgSys:
             while msgSys == None and self.timeout(2) != True:
                 msgSys = self.drone.recv_match(type='BATTERY_STATUS', blocking=True, timeout = 2)
-            if msgSys:
+            if msgSys is not None and msgSys:
                 outputData = msgSys.battery_remaining
             else:
                 outputData = None
