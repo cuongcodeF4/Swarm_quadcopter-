@@ -43,7 +43,9 @@ class Mav(object):
 
     def timeout(self, timeOutDuration):
         if self.timerInit:
+            #take the end time at first run
             endTime = time.time() + timeOutDuration
+            #prevent reset 
             self.timerInit = False
         currentTime = time.time()
         if currentTime >= endTime:
@@ -116,6 +118,8 @@ class Mav(object):
         while self.ACK_msg == None and self.timeout(2) != True:
             self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
         #if successful receive the ACK msg
+        #reset timeout for safety
+        self.timerInit = True
         if self.ACK_msg is not None and self.ACK_msg:
             ACK = self.ACK_msg.result
             if ACK == 0:
@@ -151,6 +155,8 @@ class Mav(object):
         while self.ACK_msg == None and self.timeout(2) != True:
             self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
         #if successful receive the ACK msg
+        #reset timeout for safety
+        self.timerInit = True
         if self.ACK_msg is not None and self.ACK_msg:
             ACK = self.ACK_msg.result
             if ACK == 0:
@@ -183,6 +189,8 @@ class Mav(object):
         while self.ACK_msg == None and self.timeout(2) != True:
             self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
         #if successful receive the ACK msg
+        #reset timeout for safety
+        self.timerInit = True
         if self.ACK_msg is not None and self.ACK_msg:
             ACK = self.ACK_msg.result
             if ACK == 0:
@@ -215,6 +223,8 @@ class Mav(object):
         while self.ACK_msg == None and self.timeout(2) !=True :
             self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
         #if successful receive the ACK msg
+        #reset timeout for safety
+        self.timerInit = True
         if self.ACK_msg is not None and self.ACK_msg:
             ACK = self.ACK_msg.result
             if ACK == 0:
@@ -253,6 +263,8 @@ class Mav(object):
         while self.ACK_msg == None and self.timeout(2) != True:
             self.ACK_msg = self.drone.recv_match(type='COMMAND_ACK',blocking = True)
         #if successful receive the ACK msg
+        #reset timeout for safety
+        self.timerInit = True
         if self.ACK_msg is not None and self.ACK_msg:
             ACK = self.ACK_msg.result
             if ACK == 0:
