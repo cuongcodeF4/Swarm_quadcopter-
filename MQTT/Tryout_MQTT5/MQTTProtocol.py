@@ -102,12 +102,13 @@ class MQTTProtocol(object):
         # self.Client.loop_stop()
         
     def droneSendInfo(self,topic,info):
-        print("[DEBUG] Drone start send info...")
         idDrone = self.client_id.split(":")[1]
         self.Client.loop_start()
         propInfo = mqtt_client.Properties(props.PacketTypes.PUBLISH)
         propInfo.UserProperty =[("typeMsg",INFO),("nameDrone",idDrone)]
+        print("[DEBUG] Drone start send info...")
         self.Client.publish(topic= topic, payload=info, qos=2,retain=False,properties=propInfo)
+        print("[DEBUG] Drone completed send info...")
         # self.Client.loop_stop()
 
     def droneDisconnect(self,topic):
@@ -143,7 +144,7 @@ class MQTTProtocol(object):
                 #get GPS data after 2 sec
                 timeInstance = time.time()
                 if timeInstance - GPS_Instance >= 5:
-                    gps = self.droneMavLink.getValue("GPS")
+                    gps = self.droneMavLink.getValue("GPS")    
                     try:
                         yawDroneMain = self.droneMavLink.getValue("YAW")
                         yawDroneMain = (round(yawDroneMain,0))

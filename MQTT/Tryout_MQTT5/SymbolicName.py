@@ -12,6 +12,7 @@ YAWVALUE = "YawValueMessageType"
 CMD        = "CommandType"
 
 DONE = 1
+UNIT_DONE = DRONE_NUMBER
 
 MASTERLSTWIL = "MasterLastWillMessageType"
 
