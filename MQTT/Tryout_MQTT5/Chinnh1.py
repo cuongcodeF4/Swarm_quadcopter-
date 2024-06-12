@@ -1,3 +1,4 @@
+
 import time
 import json
 from PyQt5.QtWidgets import *
@@ -27,28 +28,24 @@ class droneInstance(object):
         self.clientRecvMsg = MQTTProtocol(client_id = "LasWil:" + self.drone)
         thdRevDataFromMaster = threading.Thread(target= self.receive_data, args=(self.clientRecvMsg,DRONE_COM,)) 
         thdRevDataFromMaster.start()
-        self.clientInit    = MQTTProtocol(client_id="Init:"+self.drone, parent= self)
+        self.clientInit    = MQTTProtocol(client_id="Init:"+self.drone)
         self.clientInit.connectBroker(typeClient= TYPE_CLIENT_INIT)
 
         self.clientSendInfo   = MQTTProtocol(client_id="Info:"+self.drone)
         self.clientSendInfo.connectBroker(typeClient= TYPE_CLIENT_INFO)
 
         time.sleep(WAIT_TO_CONNECT)
-
         self.initDecode    = False 
         self.onHandleCmd   = False
+        self.checkGPS = False
         self.yawMainDrone = None
         self.HANDLE_DATA = None
-        self.firstTime = True
+        self.firstTime = False
         self.queueCmd = Queue()
         self.nbrDrawCircle = 0
         self.preX = 0
         self.preY = 0
         self.droneCompleted = 0
-        self.listLongitude = [0]*2
-        self.listLatitude  = [0]*2
-        self.eFlag = False
-        self.lastPosition = [0,0,0]
 
     def receive_data(self,Drone:MQTTProtocol,topic):
         # Initial the Client to receive command 
@@ -68,17 +65,6 @@ class droneInstance(object):
                 print("[DEBUG]{} vs {}".format(self.droneConnected,DRONE_NUMBER))
                 if self.droneConnected == DRONE_NUMBER:
                     self.queueCmd.put(msg_recv_dict)      
-
-            elif properties['typeMsg'] == PRIORITY: 
-                self.eFlag = True
-                self.onHandleCmd = False
-                msg_recv= message.payload.decode()
-                msg_recv_dict = ujson.loads(msg_recv)    
-                print("[DEBUG] Received priority message")
-                handlePriorityCmd = threading.Thread(target=self.decodeCmd , args=(msg_recv_dict,))
-                handlePriorityCmd.start()
-
-
 
             elif properties['typeMsg'] == MASTERLSTWIL: 
                 msgInit= message.payload.decode()
@@ -106,6 +92,10 @@ class droneInstance(object):
                     print("[DEBUG] Drone was connected = ", self.droneConnected)
             
             elif properties['typeMsg'] == REPORTMSG: 
+                if self.checkGPS == False:
+                    self.listLongitude = [0]*2
+                    self.listLatitude  = [0]*2
+                    self.checkGPS = True
                 try:
                     msgReport = message.payload.decode()
                     msgReport = ujson.loads(msgReport)         
@@ -122,7 +112,6 @@ class droneInstance(object):
                         self.yawMainDrone = msgReport["YAW"]
                 except Exception as e:
                     print("An error occurred when get GPS value:", e)
-
             elif properties['typeMsg'] == INFO:
                 msgInfo = message.payload.decode()
                 self.droneCompleted += int(msgInfo)
@@ -138,7 +127,6 @@ class droneInstance(object):
                 handleThread = threading.Thread(target=self.decodeCmd , args=(self.queueCmd.get(),))
                 handleThread.start()
 
-
     def decodeCmd(self, command):
         assert(isinstance(self.clientInit.droneMavLink,Mav))
         if self.firstTime == True:
@@ -151,34 +139,30 @@ class droneInstance(object):
             ############# CONTROL COMMAND ############
             if self.HANDLE_DATA["CMD"] == "Arm":
                 print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                self.clientInit.droneMavLink.arm(1) 
-                ACK = True
-                print("[DEBUG] ACK_drone_MQTT:",ACK)
+                ACK = self.clientInit.droneMavLink.arm(1)
             if self.HANDLE_DATA["CMD"] == "Disarm":
                 print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                self.clientInit.droneMavLink.arm(0)
-                ACK = True
+                ACK = self.clientInit.droneMavLink.arm(0)
             elif self.HANDLE_DATA["CMD"] == "Takeoff":
-                print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])              
-                self.clientInit.droneMavLink.arm(1)
-                ACK = self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
+                print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
+                if self.firstTime:
+                    self.clientInit.droneMavLink.arm(1)
+                    ACK = self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
+                else:
+                    ACK = self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
             elif self.HANDLE_DATA["CMD"] == "Land":
                 print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
                 self.firstTime = True
-                self.clientInit.droneMavLink.land(0,0)
-                ACK = True
-            elif self.HANDLE_DATA["CMD"] == "Move":
-                    print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                    self.clientInit.droneMavLink.move(float(self.HANDLE_DATA["LON"]),float(self.HANDLE_DATA["LAT"]),float(self.HANDLE_DATA["ALT"]))
-                    print("[DEBUG] Alt =", float(self.HANDLE_DATA["ALT"]))
-                    ACK = True
+                ACK = self.clientInit.droneMavLink.land(0,0)
             elif self.HANDLE_DATA["CMD"] == "Circle":
+                #missionCircle()
                 idDrone = int(self.drone)
                 if idDrone == 1:
                     print("[INFO] Arming the drone...")
-                    self.clientInit.droneMavLink.arm(1) 
-                    print("[INFO] Taking off...")
-                    ACK = self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
+                    armACK = self.clientInit.droneMavLink.arm(1)
+                    if armACK:
+                        print("[INFO] Taking off...")
+                        ACK = self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
                 else:
                     self.nbrDrawCircle += 1
                     diameter = float(self.HANDLE_DATA["PARA"])
@@ -189,31 +173,15 @@ class droneInstance(object):
                     yaw  = self.calculateYaw(self.listLatitude[0],self.listLongitude[0],self.listLatitude[idDrone-1],self.listLongitude[idDrone-1])
                     print("[DEBUG] Distance:", distanceDrones)  
                     print("[DEBUG] Yaw:", yaw)  
-                    print("[DEBUG] Dia = ", diameter)
-                    if self.eFlag == True:
-                        self.nbrDrawCircle = 1
-                        self.lastPosition = self.clientInit.droneMavLink.lastPosition
-                        print("[DEBUG] last position = ", self.lastPosition)
-                        self.eFlag = False
-                        # self.clientInit.droneMavLink.set_home()
-                        # self.clientInit.droneMavLink.set_home_gps(self.listLatitude[idDrone-1],self.listLongitude[idDrone-1],0)
-                    # Create csv file to store parameter of each trajectory
-                    self.creatorCsv(shapeName="Circle", diameterCir= diameter,alt=alt,distance=round(distanceDrones,0),yawValue= yaw , nbrDraw= self.nbrDrawCircle,lastPosition=self.lastPosition)
-                    #Add condition to perform this cmd 
-                    waypoints_list, yawDr = self.readWaypoints("shapes/active.csv")
-
-                    print("[INFO] Arming the drone...")
-                    self.clientInit.droneMavLink.arm(1)
-                    print("[INFO] Taking off...")
-                    self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
-                    time.sleep(5)
-                    print("[INFO] Performing the mission...")
-                    self.clientInit.droneMavLink.performMission(waypoints_list, yawDr)
-                    print("[INFO] Perform mission completed...")  
-                    ACK = True             
+                    print("[DEBUG] Đường kính = ", diameter)
+                    self.clientInit.droneMavLink.missionCircle(
+                        distanceDrones=distanceDrones, 
+                        yaw= yaw, 
+                        circleDiameter=diameter, 
+                        alt=alt
+                    )
             #ADD send out ACK bit
             if ACK:
-                print("[INFO] Send info task...")  
                 self.clientSendInfo.droneSendInfo(DRONE_COM,DONE)
         elif command["TYPE"] == UNIT:
             self.HANDLE_DATA = command["UNIT_CMD"] #this become a dictionary
@@ -222,106 +190,26 @@ class droneInstance(object):
                 ############# CONTROL COMMAND ############
                 if self.HANDLE_DATA["CMD"] == "Arm":
                     print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                    self.clientInit.droneMavLink.arm(1)
-                    ACK = True
+                    ACK = self.clientInit.droneMavLink.arm(1)
                 elif self.HANDLE_DATA["CMD"] == "Disarm":
                     print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                    self.clientInit.droneMavLink.arm(0)
-                    ACK = True
+                    ACK = self.clientInit.droneMavLink.arm(0)
                 elif self.HANDLE_DATA["CMD"] == "Takeoff":
                     print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                    self.clientInit.droneMavLink.arm(1)
-                    ACK = self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
+                    if self.firstTime:
+                        self.clientInit.droneMavLink.arm(1)
+                        ACK = self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
+                    else:
+                        ACK = self.clientInit.droneMavLink.takeoff(float(self.HANDLE_DATA["ALT"]))
                 elif self.HANDLE_DATA["CMD"] == "Land":
                     print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
                     self.firstTime = True
-                    self.clientInit.droneMavLink.land(0,0)
-                    ACK = True
-                elif self.HANDLE_DATA["CMD"] == "Move":
-                    print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                    self.clientInit.droneMavLink.move(float(self.HANDLE_DATA["LON"]),float(self.HANDLE_DATA["LAT"]),float(self.HANDLE_DATA["ALT"]))
-                    print("[DEBUG] Alt =", float(self.HANDLE_DATA["ALT"]))
-                    ACK = True
-                elif self.HANDLE_DATA["CMD"] == "Set home":
-                    print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                    self.clientInit.droneMavLink.set_home_gps(float(self.HANDLE_DATA["LON"]),float(self.HANDLE_DATA["LAT"]),float(self.HANDLE_DATA["ALT"]))
-                    ACK = True
-                if ACK:
-                    self.clientSendInfo.droneSendInfo(DRONE_COM,UNIT_DONE)
-        elif command["TYPE"] == PRIORITY:
-            print("[DEBUG] Start command priority")
-            #get the command
-            self.HANDLE_DATA = command["ALL_CMD"] #this become a dictionary
-            if self.HANDLE_DATA["CMD"] == "Land":
-                print("[DEBUG] Command receive:",self.HANDLE_DATA["CMD"])
-                self.firstTime = True
-                self.clientInit.droneMavLink.land(0,0)
-            else:
-                time.sleep(2)
-            
-
-    def readWaypoints(self,path_to_csv):
-        #-----------------------------------Read the waypoints from the CSV file-----------------------------------#
-        print("[INFO] Reading waypoints from the CSV file...")
-        waypoints_list = []
-        with open(path_to_csv, newline="") as csvFile:
-            reader = csv.DictReader(csvFile)
-            for row in reader:
-                t = float(row["t"])
-                px = float(row["px"])
-                py = float(row["py"])
-                pz = float(row["pz"])
-                vx = float(row["vx"])
-                vy = float(row["vy"])
-                vz = float(row["vz"])
-                yaw = float(row["yaw"])
-                waypoints_list.append((t, px, py, pz, vx, vy, vz))
-        return waypoints_list, yaw
-    def creatorCsv(self,shapeName,diameterCir,alt,distance,posXMaster=0,posYMaster=0, yawValue = 0, nbrDraw =1, lastPosition=[0,0,0]):
-        # Reset draw circle when priority land 
-        if nbrDraw == 1:
-            self.preX = lastPosition[0]
-            self.preY = lastPosition[1]
-            print("[DEBUG] Reset")
-        num_repeats = 1
-        shape_name=shapeName
-        diameter = diameterCir
-        direction = 1
-        maneuver_time = 40
-        start_x = (distance-diameterCir/2)*math.cos(math.radians(yawValue)) + self.preX 
-        start_y = (distance-diameterCir/2)*math.sin(math.radians(yawValue)) + self.preY
-
-        self.preX = round(start_x,2)
-        self.preY = round(start_y,2)
-        
-        print("[DEBUG] x = {}, y= {}".format(start_x,start_y))
-
-        yaw = yawValue
-        initial_altitude = alt
-        move_speed = 2.0  # m/s
-        hold_time = 1 #s
-        step_time = 0.05 #s
-        output_file = "shapes/active.csv"
-
-        create_active_csv(
-            shape_name=shape_name,
-            num_repeats=num_repeats,
-            diameter=diameter,
-            direction=direction,
-            maneuver_time=maneuver_time,
-            start_x=start_x,
-            start_y=start_y,
-            yaw = yaw,
-            initial_altitude=initial_altitude,
-            move_speed = move_speed,
-            hold_time = hold_time,
-            step_time = step_time,
-            last_position= lastPosition,
-            numberDraw = nbrDraw,
-            output_file = output_file,
-        )
-        # export_and_plot_shape(output_file)
-
+                    ACK = self.clientInit.droneMavLink.land(0,0)
+                elif self.HANDLE_DATA["CMD"] == "Prepare act":
+                    pass
+            #add ACK scan
+            if ACK:
+                self.clientSendInfo.droneSendInfo(DRONE_COM,DONE)
 
     def distance(self,lat1, lon1, lat2, lon2):
         R = 6371.0  
@@ -359,4 +247,3 @@ class droneInstance(object):
         else:
             yaw_angle = -alpha
         return round((yaw_angle),0)
-

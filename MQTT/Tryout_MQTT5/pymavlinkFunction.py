@@ -33,6 +33,16 @@ class Mav(object):
         self.drone.wait_heartbeat()
         print("Heartbeat from system (system %u component %u)" % (self.drone.target_system, self.drone.target_component))
         self.wait_drone_ready()
+        self.ackMsg = 1
+        self.lastPosition = [0,0,0]
+
+    def timeout(self,startTime, timeOutDuration):
+        endTime = startTime + timeOutDuration
+        currentTime = time.time()
+        if currentTime >= endTime:
+            return True
+        else:
+            return False
 
     def wait_drone_ready(self):
         #-----------------------------------Wait for the drone to be ready-----------------------------------#
@@ -72,8 +82,55 @@ class Mav(object):
                                                 yaw, 0)
             time.sleep(0.1)
             t += 0.1
+        if self.parent.eFlag == True:
+            self.lastPosition[0] =  position[0]
+            self.lastPosition[1] =  position[1] 
+            self.lastPosition[2] =  position[2]  
+        print("[DEBUG] Stop mission")
 
+    def checkACK(self):
+        checkTimes = 0
+        while checkTimes < 2:
+            self.ackMsg = self.drone.recv_match(type='COMMAND_ACK', blocking=True, timeout = 4)
+            if self.ackMsg != None:
+                checkTimes += 1
+                if self.ackMsg.get_srcSystem() == self.targetSys: 
+                    print("[DEBUG] Completed receiving the ACK ", self.ackMsg)
+                    Ack = self.ackMsg.result
+                    print("[DEBUG] ACK check = ", Ack)
+                    if Ack == 0:
+                        print("OKEEEE")
+                        return True                    
+                    else:
+                        print("[DEBUG] result != 0")
+                        return False          
+            else:
+                checkTimes += 1
+        print("[DEBUG] >2 check")
+        return False
 
+    def set_home(self):
+        print("[DEBUG] Send MAV_CMD_DO_SET_HOME")
+        self.drone.mav.command_long_send(
+            self.drone.target_system,  # Target system
+            self.drone.target_component,  # Target component
+            mavutil.mavlink.MAV_CMD_DO_SET_HOME,  # Command
+            0,  # Confirmation
+            1,  # Param 1 (0 to use specified location, 1 to use current location)
+            0, 0, 0,  # Param 2-4 (unused)
+            0,  # Param 5 (latitude)
+            0,  # Param 6 (longitude)
+            0   # Param 7 (altitude)
+        )
+    def set_home_gps(self, lat, lon, alt):
+        print("[DEBUG] Send set_gps_global_origin_send")
+        self.drone.mav.set_gps_global_origin_send(
+            self.drone.target_system,
+            int(lat * 1e7),
+            int(lon * 1e7),
+            int(alt * 1000)
+    )
+        
     #take off func
     def takeoff(self, altitude):
         # all the altitude use is in meter
@@ -90,6 +147,18 @@ class Mav(object):
             0, 
             altitude
         )
+        #ACK handle
+        #check to see if the command was send successful
+        #scan for the ACK msg
+        #what if the drone never reach the wanted high? 
+        # while True:
+        #         #check for alt
+        #         instance_ALT = self.getValue("ALT")
+        #         if  altitude - 0.2 < instance_ALT < altitude + 0.2:
+        #             #send ACK bit
+        #             ACK  = True
+        #             break
+        return True          
     
     #Arm func
     def arm(self, state):
@@ -106,9 +175,7 @@ class Mav(object):
             0, 
             0, 
             0
-        )
-
-    
+        )                 
     #Setmode func
     def setMode(self, mode):
         #need a code lines to scan for all the 
@@ -125,6 +192,7 @@ class Mav(object):
             0, 
             0
         )
+    
     #land mode
     def land(self, decentSpeed, maxDecentAngle):
         self.drone.mav.command_long_send(
@@ -140,6 +208,12 @@ class Mav(object):
             0, 
             0
         )
+    #land mode
+    
+    def move(self,x,y,z):    
+        self.drone.mav.send(mavutil.mavlink.MAVLink_set_position_target_local_ned_message(10,self.drone.target_system, 
+                            self.drone.target_component,mavutil.mavlink.MAV_FRAME_LOCAL_NED ,0b110111111000,x,y,-z,0,0,0,0,0,0,0,0))
+        time.sleep(1)
 
     def RTL(self):
         self.drone.mav.command_long_send(
@@ -155,26 +229,12 @@ class Mav(object):
             0, 
             0
         )
-
-    def checkACK(self):
-        while True: 
-            #wait to see if the matching message was present in the data stream
-            ack = self.drone.recv_match(type='COMMAND_ACK', blocking=True, timeout=1.0)
-            if ack != None:
-                #there is matching message in the data stream and it ready to be read out
-                ack = ack.result 
-                print("ack2=",ack)
-                if ack == 0:          
-                    print("[INFO] Command executed successfully")
-                    return True
-                else:
-                    return False
-            
+  
     def recvMsgResp(self):
         while True:        
-            msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout = 2)
+            msg = self.drone.recv_match(type='SYS_STATUS', blocking=True, timeout = 1)
             msgGps = self.drone.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout = 2)
-            # ack = self.drone.recv_match(type='COMMAND_ACK', blocking=True, timeout=1.0)
+            # ack = self.drone.recv_match(type='COMMAND_ACK', blocking=True, timeout=2)
 
             if msg != None :
                 if msg.get_srcSystem() == self.targetSys:       
@@ -187,12 +247,7 @@ class Mav(object):
             else:
                 self.msgGps = None
 
-            # if ack != None :
-            #     if ack.get_srcSystem() == self.targetSys:       
-            #         self.ack = ack
-            #         print("[DEBUG] Ack = ", ack)
-            # else:
-            #     self.ack = None
+            
     #user input in a ;ist of data and para user wanna take out
     #The function will scan through all the para and get all the info need for the listed para
     #then it will sum it up in a dict and output that out for other func to use
@@ -204,11 +259,11 @@ class Mav(object):
         #dict for condition
         # ALT func 
         if "ALT"  == param:
-            if self.msg:
+            if self.msgGps:
                 #get only the needed data for the need of using
-                return self.msg.altitude_relative 
+                return self.msgGps.relative_alt / 1000.0
             else:
-                return None
+                return 0
         # GPS func
         elif "GPS" == param :
             gps = [0]*2
@@ -243,6 +298,3 @@ class Mav(object):
                 return self.msgYaw.yaw
             else:
                 return None
-
-    def setPara(self):
-        pass

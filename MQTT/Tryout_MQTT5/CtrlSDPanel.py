@@ -22,23 +22,6 @@ except:
 subprocess.run("python -m PyQt5.uic.pyuic systemControlDrone.ui -o uiSystemDrone.py", shell=True)
 
 from uiSystemDrone import Ui_MainWindow
-
-# class MasterHandeler(QThread):
-#     handleLasWil      = pyqtSignal(object)
-#     updateConsoleLog  = pyqtSignal(str,str,str)
-    
-#     # sendCmd           = pyqtSignal()
-#     # updateDroneStatus = pyqtSignal()
-#     def __init__(self,func):
-#         super().__init__()
-#         self.function = func
-#         print("[DEBUG] a new thread was spawned")
-#     def run(self):
-#         while True:
-#             self.function()
-
-
-
 class MasterInit(QThread):
     updateButton      = pyqtSignal()
     updateConsoleLog  = pyqtSignal(str,str)
@@ -124,7 +107,7 @@ class MyWindow(QMainWindow):
         # Initial default size of image drone was created 
         self.sizeImage = 100
 
-        self.commandList = ["Choose the command","Arm","Disarm","Takeoff","Land","Prepare act"]       
+        self.commandList = ["Choose the command","Arm","Disarm","Takeoff","Land","Prepare act","Move"]       
         self.ui.commandComboBox.addItems(self.commandList)
 
         self.ShapeList = ["Choose the shape","Circle","Square","straight line"]       
@@ -281,7 +264,7 @@ class MyWindow(QMainWindow):
         # Check master online?
         if self.run ==1:
             if self.currentCmd == "Circle" or self.currentCmd == "Takeoff":
-                if  self.ui.altValue.text() != "":
+                if  self.ui.altValue.text() != "" or self.ui.paraValue.text()!= "":
                     #Checking the drone number are enough?
                     if self.master.droneConnected == self.num_drones:
                         # Add command to command pending table 
@@ -293,7 +276,7 @@ class MyWindow(QMainWindow):
                     print("Queue size after clearing:", self.dataSend.qsize())
                 else:
                     self.printLog("WARNING","Please enter altitude value!")
-                    QMessageBox.warning(self, "Warning", "Please enter altitude value!")        
+                    QMessageBox.warning(self, "Warning", "Please enter altitude value and paraValue!")        
             else:
                     if self.typeCmd == PRIORITY:
                         # Convert payload to ujon format

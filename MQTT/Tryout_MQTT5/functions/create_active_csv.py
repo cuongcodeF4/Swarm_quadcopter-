@@ -345,7 +345,7 @@ def repeat_maneuver(num_repeats, shape_fcn, maneuver_time, diameter, direction, 
 
 
 
-def create_active_csv(shape_name,num_repeats, diameter, direction, maneuver_time, start_x, start_y,yaw, initial_altitude, move_speed, hold_time , step_time, numberDraw,output_file="shapes/active.csv"):
+def create_active_csv(shape_name,num_repeats, diameter, direction, maneuver_time, start_x, start_y,yaw, initial_altitude, move_speed, hold_time , step_time,last_position, numberDraw,output_file="shapes/active.csv"):
 
     if shape_name == "Circle":
         shape_code, shape_fcn, shape_args = 1, circle_trajectory, ()
@@ -375,7 +375,8 @@ def create_active_csv(shape_name,num_repeats, diameter, direction, maneuver_time
         # Initialize variables
         last_time = 0.0
         last_step = 0
-        last_coordinates = (0, 0, -1*initial_altitude)
+        last_coordinates = (last_position[0], last_position[1], -1*initial_altitude)
+        print("[DEBUG] Reset")
 
     header = ["t", "px", "py", "pz", "vx", "vy", "vz", "ax", "ay", "az", "yaw", "mode"]
 
