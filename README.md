@@ -137,12 +137,11 @@ Swarm_quadcopter-/
 │       ├── requirements.txt           # Python dependencies
 │       └── TEST_*.py                  # Unit / integration tests
 ├── Rasp/                          # Raspberry Pi client (mirrors MQTT/)
-│   └── Tryout_MQTT5/
-│       ├── Drone1.py / Drone2.py / Drone3.py  # Run one per Pi
-│       ├── launcher.sh                # Autostart on boot (activate venv → run Drone1.py)
-│       ├── runDrone.sh                # Minimal manual launcher
-│       └── ...                        # Same modules as PC side
-└── Video/                         # Flight recordings
+   └── Tryout_MQTT5/
+       ├── Drone1.py / Drone2.py / Drone3.py  # Run one per Pi
+       ├── launcher.sh                # Autostart on boot (activate venv → run Drone1.py)
+       ├── runDrone.sh                # Minimal manual launcher
+       └── ...                        # Same modules as PC side
 ```
 
 ### Runtime Roles
@@ -430,9 +429,7 @@ All clients use **QoS 2** and **MQTT v5** with `clean_start=False` so reconnecti
 - **Written report**: [`Document/Report.docx`](Document/Report.docx)
 - **Presentation slides**: [`Document/Report.pptx`](Document/Report.pptx)
 - **Architecture diagrams**: [`Document/Commnication_Architecture.png`](Document/Commnication_Architecture.png), [`Document/Mqtt_protocol_Architecture.png`](Document/Mqtt_protocol_Architecture.png)
-- **Flight recordings**: [`Video/`](Video/)
 - **Mosquitto setup notes**: [`MQTT/README.md`](MQTT/README.md)
-- **Video demos**: [`Video/`](Video/Video_Demos.mp4)
 ---
 
 ## Contact
